@@ -1,0 +1,62 @@
+\documentclass[a4paper,12pt]{article} % This defines the style of your paper
+
+\usepackage[top = 2.5cm, bottom = 2.5cm, left = 2.5cm, right = 2.5cm]{geometry} 
+
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+
+\usepackage{multirow} % Multirow is for tables with multiple rows within one cell.
+\usepackage{booktabs} % For even nicer tables.
+
+\usepackage{graphicx} 
+
+\usepackage{setspace}
+\setlength{\parindent}{0in}
+\setlength{\parskip}{.5em}
+
+\begin{document}
+
+\begin{center}
+    {\Large \bf Homework 1}
+    \vspace{2mm}
+
+    {\bf Jiří Klepl}
+
+\end{center}
+
+\vspace{0.4cm}
+
+\begin{quote}
+    (10 points) Let $G = (V, E)$ be an undirected graph. Suggest a propositional formula that is satisfiable if and only if $G$ contains a Hamiltonian cycle.
+\end{quote}
+
+We will describe a formula $\varphi$ such that the assignment $\alpha \models \varphi$ will give us the Hamiltonian cycle. This formula will be satisfiable iff $G$ has a Hamiltonian cycle.
+
+Let a variable $x_{u, v}$ denote the fact the cycle takes edge $\{u,v\} \in E$ (with a direction from $u$ to $v$) iff $\alpha(x_{u,v}) = 1$. The formula then has to describe the fact we visit each vertex exactly once and that we exit the vertex exactly once and that there is only one path:
+
+\begin{itemize}
+    \item 
+    At least once:
+    $$\varphi_1 \equiv \bigwedge\limits_{u \in V} \left(\bigvee\limits_{\{u,v\} \in E} x_{u,v} \wedge \bigvee\limits_{\{u,v\} \in E} x_{v,u} \wedge \bigwedge\limits_{\{u,v\} \in E} (\neg x_{u,v} \vee \neg x_{v,u}) \right)$$
+    \item 
+    At most once:
+    $$\varphi_2 \equiv \bigwedge\limits_{(u,v), \{u,w\} \in E \wedge w \not= v} ([\neg x_{u,v} \vee \neg x_{u,w}] \wedge [\neg x_{v, u} \vee \neg x_{w, u}])$$
+    \item
+    One path: Let a variable $y_{u, v, w}$ denote that $v$ is accessible by a path from $u$ through $w$ that is a part of the Hamiltonian cycle iff $\alpha(y_{u,v,w}) = 1$, where $u,v,w \in V$. Then:
+    \begin{itemize}
+        \item Extensibility:
+        $$\varphi_3 \equiv \bigwedge\limits_{u, v, w, x \in V \wedge \{v,x\} \in E \wedge |\{u,v,x\}| = 3} ([y_{u,v,w} \wedge x_{v, x}] \to y_{u,x,w})$$
+        \item Asymmetry (non-triviality):
+        $$\varphi_4 \equiv \bigwedge\limits_{u, v, w \in V \wedge |\{u,v,w\}| = 3} ([y_{u,v,w} \to \neg y_{v,u,w}] \wedge [y_{u,v,w} \to \neg y_{u,w,v}])$$
+        \item Universality:
+        $$\varphi_5 \equiv \bigwedge\limits_{u, v \in V \wedge u \not= v} (y_{u,v,u} \wedge y_{u,v,v})$$
+    \end{itemize}
+\end{itemize}
+
+The formula has the form: $\varphi \equiv \varphi_1 \wedge \varphi_2 \wedge \varphi_3 \wedge \varphi_4 \wedge \varphi_5$.
+
+$\varphi_1, \varphi_2$ ensure that every vertex will be visited and exited exactly once.
+
+$\varphi_3, \varphi_4, \varphi_5$ ensure that the result will not be broken into separate cycles.
+
+\end{document}
