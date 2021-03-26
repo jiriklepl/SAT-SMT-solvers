@@ -263,20 +263,32 @@
 
 First, we want some imports:
 
+\section{Parser}
+
 \begin{hscode}\SaveRestoreHook
 \column{B}{@{}>{\hspre}l<{\hspost}@{}}%
 \column{E}{@{}>{\hspre}l<{\hspost}@{}}%
 \>[B]{}\mathbf{module}\;\Conid{Main}\;\mathbf{where}{}\<[E]%
 \\
-\>[B]{}\mathbf{import}\;\Conid{\Conid{Text}.Megaparsec}{}\<[E]%
+\>[B]{}\mathbf{import}\;\Conid{\Conid{Text}.Megaparsec}\;\Varid{hiding}\;(\Conid{State}){}\<[E]%
 \\
 \>[B]{}\mathbf{import}\;\Conid{\Conid{Text}.\Conid{Megaparsec}.Char}{}\<[E]%
 \\
 \>[B]{}\mathbf{import}\;\Varid{qualified}\;\Conid{\Conid{Text}.\Conid{Megaparsec}.\Conid{Char}.Lexer}\;\Varid{as}\;\Conid{L}{}\<[E]%
 \\
-\>[B]{}\mathbf{import}\;\Conid{\Conid{Data}.Text}{}\<[E]%
+\>[B]{}\mathbf{import}\;\Varid{qualified}\;\Conid{\Conid{Data}.Text}\;\Varid{as}\;\Conid{T}{}\<[E]%
+\\
+\>[B]{}\mathbf{import}\;\Varid{qualified}\;\Conid{\Conid{Data}.\Conid{Text}.IO}\;\Varid{as}\;\Conid{T}{}\<[E]%
 \\
 \>[B]{}\mathbf{import}\;\Conid{\Conid{Data}.Void}{}\<[E]%
+\\
+\>[B]{}\mathbf{import}\;\Conid{\Conid{Data}.Foldable}{}\<[E]%
+\\
+\>[B]{}\mathbf{import}\;\Varid{qualified}\;\Conid{\Conid{Data}.Map}\;\Varid{as}\;\Conid{Map}{}\<[E]%
+\\
+\>[B]{}\mathbf{import}\;\Varid{qualified}\;\Conid{\Conid{Data}.Set}\;\Varid{as}\;\Conid{Set}{}\<[E]%
+\\
+\>[B]{}\mathbf{import}\;\Conid{\Conid{Control}.\Conid{Monad}.State}{}\<[E]%
 \\
 \>[B]{}\mathbf{import}\;\Conid{\Conid{Control}.Monad}\;(\Varid{void}){}\<[E]%
 \ColumnHook
@@ -287,21 +299,17 @@ Then, we add some boilerplate:
 \begin{hscode}\SaveRestoreHook
 \column{B}{@{}>{\hspre}l<{\hspost}@{}}%
 \column{E}{@{}>{\hspre}l<{\hspost}@{}}%
-\>[B]{}\Varid{sc}\mathbin{::}\Conid{Parser}\;(){}\<[E]%
-\\
-\>[B]{}\Varid{sc}\mathrel{=}\Varid{void}\mathbin{\$}\Varid{many}\;\Varid{spaceChar}{}\<[E]%
-\\[\blanklineskip]%
 \>[B]{}\Varid{lexeme}\mathbin{::}\Conid{Parser}\;\Varid{a}\to \Conid{Parser}\;\Varid{a}{}\<[E]%
 \\
-\>[B]{}\Varid{lexeme}\mathrel{=}\Varid{\Conid{L}.lexeme}\;\Varid{sc}{}\<[E]%
+\>[B]{}\Varid{lexeme}\mathrel{=}\Varid{\Conid{L}.lexeme}\;\Varid{space}{}\<[E]%
 \\[\blanklineskip]%
-\>[B]{}\Varid{symbol}\mathbin{::}\Conid{Text}\to \Conid{Parser}\;\Conid{Text}{}\<[E]%
+\>[B]{}\Varid{symbol}\mathbin{::}\Conid{\Conid{T}.Text}\to \Conid{Parser}\;\Conid{\Conid{T}.Text}{}\<[E]%
 \\
-\>[B]{}\Varid{symbol}\mathrel{=}\Varid{\Conid{L}.symbol}\;\Varid{sc}{}\<[E]%
+\>[B]{}\Varid{symbol}\mathrel{=}\Varid{\Conid{L}.symbol}\;\Varid{space}{}\<[E]%
 \\[\blanklineskip]%
-\>[B]{}\Varid{packSymbol}\mathbin{::}\Conid{String}\to \Conid{Parser}\;\Conid{Text}{}\<[E]%
+\>[B]{}\Varid{packSymbol}\mathbin{::}\Conid{String}\to \Conid{Parser}\;\Conid{\Conid{T}.Text}{}\<[E]%
 \\
-\>[B]{}\Varid{packSymbol}\mathrel{=}\Varid{symbol}\mathbin{\circ}\Varid{pack}{}\<[E]%
+\>[B]{}\Varid{packSymbol}\mathrel{=}\Varid{symbol}\mathbin{\circ}\Varid{\Conid{T}.pack}{}\<[E]%
 \\[\blanklineskip]%
 \>[B]{}\Varid{parens}\mathbin{::}\Conid{Parser}\;\Varid{a}\to \Conid{Parser}\;\Varid{a}{}\<[E]%
 \\
@@ -309,7 +317,7 @@ Then, we add some boilerplate:
 \ColumnHook
 \end{hscode}\resethooks
 
-The input file contains a description of a single formula in NNF using a very simplified SMT-LIB format following grammatical rules:
+We rewrite the following grammar into haskell:
 
 \begin{tabbing}\ttfamily
 ~\char60{}formula\char62{}~\char58{}\char58{}\char61{}~\char96{}\char40{}\char39{}~\char96{}and\char39{}~\char60{}formula\char62{}~\char60{}formula\char62{}~\char96{}\char41{}\char39{}\\
@@ -318,21 +326,30 @@ The input file contains a description of a single formula in NNF using a very si
 \ttfamily ~~~~~~~~~~~\char124{}~\char60{}variable\char62{}
 \end{tabbing}
 
-We rewrite those into haskell:
-
 \begin{hscode}\SaveRestoreHook
 \column{B}{@{}>{\hspre}l<{\hspost}@{}}%
-\column{20}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{12}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{13}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{16}{@{}>{\hspre}c<{\hspost}@{}}%
+\column{16E}{@{}l@{}}%
+\column{23}{@{}>{\hspre}l<{\hspost}@{}}%
 \column{E}{@{}>{\hspre}l<{\hspost}@{}}%
 \>[B]{}\Varid{formula}\mathbin{::}\Conid{Parser}\;\Conid{Formula}{}\<[E]%
 \\
-\>[B]{}\Varid{formula}\mathrel{=}\Varid{parens}\mathbin{\$}\mathbf{do}\;\Varid{packSymbol}\;\text{\ttfamily \char34 and\char34}\sequ \Conid{AndFormula}\mathbin{<\$>}\Varid{formula}\mathbin{<*>}\Varid{formula}{}\<[E]%
+\>[B]{}\Varid{formula}\mathrel{=}{}\<[12]%
+\>[12]{}\Varid{try}\;(\Varid{parens}\mathbin{\$}\mathbf{do}\;\Varid{packSymbol}\;\text{\ttfamily \char34 and\char34}\sequ \Conid{FAnd}\mathbin{<\$>}\Varid{formula}\mathbin{<*>}\Varid{formula}{}\<[E]%
 \\
-\>[B]{}\hsindent{20}{}\<[20]%
-\>[20]{}\mathbin{<|>}\mathbf{do}\;\Varid{packSymbol}\;\text{\ttfamily \char34 or\char34}\sequ \Conid{OrFormula}\mathbin{<\$>}\Varid{formula}\mathbin{<*>}\Varid{formula}{}\<[E]%
+\>[12]{}\hsindent{11}{}\<[23]%
+\>[23]{}\mathbin{<|>}\mathbf{do}\;\Varid{packSymbol}\;\text{\ttfamily \char34 or\char34}\sequ \Conid{FOr}\mathbin{<\$>}\Varid{formula}\mathbin{<*>}\Varid{formula}{}\<[E]%
 \\
-\>[B]{}\hsindent{20}{}\<[20]%
-\>[20]{}\mathbin{<|>}\mathbf{do}\;\Varid{packSymbol}\;\text{\ttfamily \char34 not\char34}\sequ \Conid{NotFormula}\mathbin{<\$>}\Varid{variable}{}\<[E]%
+\>[12]{}\hsindent{11}{}\<[23]%
+\>[23]{}\mathbin{<|>}\mathbf{do}\;\Varid{packSymbol}\;\text{\ttfamily \char34 not\char34}\sequ \Conid{FNeg}\mathbin{\circ}\Conid{FVar}\mathbin{<\$>}\Varid{variable}{}\<[E]%
+\\
+\>[12]{}\hsindent{4}{}\<[16]%
+\>[16]{}){}\<[16E]%
+\\
+\>[12]{}\hsindent{1}{}\<[13]%
+\>[13]{}\mathbin{<|>}\mathbf{do}\;\Conid{FVar}\mathbin{<\$>}\Varid{variable}{}\<[E]%
 \\[\blanklineskip]%
 \>[B]{}\Varid{variable}\mathbin{::}\Conid{Parser}\;\Conid{Variable}{}\<[E]%
 \\
@@ -346,18 +363,191 @@ And then we define the supporting types:
 \column{B}{@{}>{\hspre}l<{\hspost}@{}}%
 \column{14}{@{}>{\hspre}l<{\hspost}@{}}%
 \column{E}{@{}>{\hspre}l<{\hspost}@{}}%
-\>[B]{}\mathbf{type}\;\Conid{Parser}\mathrel{=}\Conid{Parsec}\;\Conid{Void}\;\Conid{Text}{}\<[E]%
+\>[B]{}\mathbf{type}\;\Conid{Parser}\mathrel{=}\Conid{Parsec}\;\Conid{Void}\;\Conid{\Conid{T}.Text}{}\<[E]%
 \\[\blanklineskip]%
-\>[B]{}\mathbf{data}\;\Conid{Formula}\mathrel{=}\Conid{AndFormula}\;\Conid{Formula}\;\Conid{Formula}{}\<[E]%
+\>[B]{}\mathbf{data}\;\Conid{Formula}\mathrel{=}\Conid{FAnd}\;\Conid{Formula}\;\Conid{Formula}{}\<[E]%
 \\
 \>[B]{}\hsindent{14}{}\<[14]%
-\>[14]{}\mid \Conid{OrFormula}\;\Conid{Formula}\;\Conid{Formula}{}\<[E]%
+\>[14]{}\mid \Conid{FOr}\;\Conid{Formula}\;\Conid{Formula}{}\<[E]%
 \\
 \>[B]{}\hsindent{14}{}\<[14]%
-\>[14]{}\mid \Conid{NotFormula}\;\Conid{Variable}{}\<[E]%
+\>[14]{}\mid \Conid{FNeg}\;\Conid{Formula}{}\<[E]%
+\\
+\>[B]{}\hsindent{14}{}\<[14]%
+\>[14]{}\mid \Conid{FVar}\;\Conid{Variable}{}\<[E]%
+\\
+\>[B]{}\hsindent{14}{}\<[14]%
+\>[14]{}\mathbf{deriving}\;(\Conid{Eq},\Conid{Ord},\Conid{Show}){}\<[E]%
 \\[\blanklineskip]%
 \>[B]{}\mathbf{type}\;\Conid{Variable}\mathrel{=}\Conid{String}{}\<[E]%
 \ColumnHook
 \end{hscode}\resethooks
+
+\section{Encoding}
+
+Now we can define the encoding:
+
+\begin{hscode}\SaveRestoreHook
+\column{B}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{5}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{9}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{13}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{E}{@{}>{\hspre}l<{\hspost}@{}}%
+\>[B]{}\Varid{encode}\;\Varid{f}\mathrel{=}\mathbf{do}{}\<[E]%
+\\
+\>[B]{}\hsindent{5}{}\<[5]%
+\>[5]{}\Varid{name}\leftarrow \Varid{encode'}\;\Varid{f}{}\<[E]%
+\\
+\>[B]{}\hsindent{5}{}\<[5]%
+\>[5]{}\Varid{modify}\;(\lambda \Varid{state}\to \Varid{state}\;\{\mskip1.5mu \Varid{cnfRepr}\mathrel{=}[\mskip1.5mu \Varid{name}\mskip1.5mu]\mathbin{`\Varid{\Conid{Set}.insert}`}\Varid{cnfRepr}\;\Varid{state}\mskip1.5mu\}){}\<[E]%
+\\[\blanklineskip]%
+\>[B]{}\Varid{encode'}\mathbin{::}\Conid{Formula}\to \Conid{Encoder}\;\Conid{Int}{}\<[E]%
+\\
+\>[B]{}\Varid{encode'}\;\Varid{f}\mathord{@}(\Conid{FAnd}\;\Varid{left}\;\Varid{right})\mathrel{=}\mathbf{do}{}\<[E]%
+\\
+\>[B]{}\hsindent{5}{}\<[5]%
+\>[5]{}\Varid{leftName}\leftarrow \Varid{encode'}\;\Varid{left}{}\<[E]%
+\\
+\>[B]{}\hsindent{5}{}\<[5]%
+\>[5]{}\Varid{rightName}\leftarrow \Varid{encode'}\;\Varid{right}{}\<[E]%
+\\
+\>[B]{}\hsindent{5}{}\<[5]%
+\>[5]{}\Varid{name}\leftarrow \Varid{getName}\;\Varid{f}{}\<[E]%
+\\
+\>[B]{}\hsindent{5}{}\<[5]%
+\>[5]{}\Varid{state}\mathord{@}\Conid{EncoderState}\;\{\mskip1.5mu \Varid{cnfRepr}\mathrel{=}\Varid{cnf}\mskip1.5mu\}\leftarrow \Varid{get}{}\<[E]%
+\\
+\>[B]{}\hsindent{5}{}\<[5]%
+\>[5]{}\Varid{put}\;\Varid{state}\;\{\mskip1.5mu \Varid{cnfRepr}\mathrel{=}\Varid{foldr}\;\Varid{\Conid{Set}.insert}\;\Varid{cnf}\;[\mskip1.5mu [\mskip1.5mu \mathbin{-}\Varid{name},\Varid{leftName}\mskip1.5mu],[\mskip1.5mu \mathbin{-}\Varid{name},\Varid{rightName}\mskip1.5mu],[\mskip1.5mu \mathbin{-}\Varid{leftName},\mathbin{-}\Varid{rightName},\Varid{name}\mskip1.5mu]\mskip1.5mu]\mskip1.5mu\}{}\<[E]%
+\\
+\>[B]{}\hsindent{5}{}\<[5]%
+\>[5]{}\Varid{return}\;\Varid{name}{}\<[E]%
+\\[\blanklineskip]%
+\>[B]{}\Varid{encode'}\;(\Conid{FOr}\;\Varid{left}\;\Varid{right})\mathrel{=}\Varid{encode'}\mathbin{\circ}\Conid{FNeg}\mathbin{\$}\Conid{FAnd}\;(\Conid{FNeg}\;\Varid{left})\;(\Conid{FNeg}\;\Varid{right}){}\<[E]%
+\\
+\>[B]{}\Varid{encode'}\;(\Conid{FNeg}\;\Varid{f})\mathrel{=}\Varid{negate}\mathbin{<\$>}\Varid{encode'}\;\Varid{f}{}\<[E]%
+\\
+\>[B]{}\Varid{encode'}\;\Varid{f}\mathord{@}\Conid{FVar}\;\{\mskip1.5mu \mskip1.5mu\}\mathrel{=}\Varid{getName}\;\Varid{f}{}\<[E]%
+\\[\blanklineskip]%
+\>[B]{}\Varid{getName}\mathbin{::}\Conid{Formula}\to \Conid{Encoder}\;\Conid{Int}{}\<[E]%
+\\
+\>[B]{}\Varid{getName}\;\Varid{f}\mathrel{=}\mathbf{do}{}\<[E]%
+\\
+\>[B]{}\hsindent{5}{}\<[5]%
+\>[5]{}\Varid{state}\mathord{@}\Conid{EncoderState}\;\{\mskip1.5mu \Varid{formulaNames}\mathrel{=}\Varid{names}\mskip1.5mu\}\leftarrow \Varid{get}{}\<[E]%
+\\
+\>[B]{}\hsindent{5}{}\<[5]%
+\>[5]{}\mathbf{case}\;\Varid{f}\mathbin{`\Varid{\Conid{Map}.lookup}`}\Varid{names}\;\mathbf{of}{}\<[E]%
+\\
+\>[5]{}\hsindent{4}{}\<[9]%
+\>[9]{}\Conid{Just}\;\Varid{i}\to \Varid{return}\;\Varid{i}{}\<[E]%
+\\
+\>[5]{}\hsindent{4}{}\<[9]%
+\>[9]{}\Conid{Nothing}\to \mathbf{do}{}\<[E]%
+\\
+\>[9]{}\hsindent{4}{}\<[13]%
+\>[13]{}\mathbf{let}\;\Varid{name}\mathrel{=}\Varid{\Conid{Map}.size}\;\Varid{names}\mathbin{+}\mathrm{1}{}\<[E]%
+\\
+\>[9]{}\hsindent{4}{}\<[13]%
+\>[13]{}\Varid{put}\;\Varid{state}\;\{\mskip1.5mu \Varid{formulaNames}\mathrel{=}\Varid{\Conid{Map}.insert}\;\Varid{f}\;\Varid{name}\;\Varid{names}\mskip1.5mu\}{}\<[E]%
+\\
+\>[9]{}\hsindent{4}{}\<[13]%
+\>[13]{}\Varid{return}\;\Varid{name}{}\<[E]%
+\ColumnHook
+\end{hscode}\resethooks
+
+\begin{hscode}\SaveRestoreHook
+\column{B}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{5}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{E}{@{}>{\hspre}l<{\hspost}@{}}%
+\>[B]{}\mathbf{type}\;\Conid{Encoder}\mathrel{=}\Conid{State}\;\Conid{EncoderState}{}\<[E]%
+\\[\blanklineskip]%
+\>[B]{}\mathbf{data}\;\Conid{EncoderState}\mathrel{=}\Conid{EncoderState}{}\<[E]%
+\\
+\>[B]{}\hsindent{5}{}\<[5]%
+\>[5]{}\{\mskip1.5mu \Varid{formulaNames}\mathbin{::}\Conid{\Conid{Map}.Map}\;\Conid{Formula}\;\Conid{Int}{}\<[E]%
+\\
+\>[B]{}\hsindent{5}{}\<[5]%
+\>[5]{},\Varid{cnfRepr}\mathbin{::}\Conid{\Conid{Set}.Set}\;[\mskip1.5mu \Conid{Int}\mskip1.5mu]{}\<[E]%
+\\
+\>[B]{}\hsindent{5}{}\<[5]%
+\>[5]{}\mskip1.5mu\}{}\<[E]%
+\ColumnHook
+\end{hscode}\resethooks
+
+
+\begin{hscode}\SaveRestoreHook
+\column{B}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{5}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{9}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{13}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{E}{@{}>{\hspre}l<{\hspost}@{}}%
+\>[B]{}\Varid{prettyPrint}\mathbin{::}\Conid{EncoderState}\to \Conid{IO}\;(){}\<[E]%
+\\
+\>[B]{}\Varid{prettyPrint}\;\Conid{EncoderState}\;\{\mskip1.5mu \Varid{formulaNames}\mathrel{=}\Varid{names},\Varid{cnfRepr}\mathrel{=}\Varid{cnf}\mskip1.5mu\}\mathrel{=}\mathbf{do}{}\<[E]%
+\\
+\>[B]{}\hsindent{5}{}\<[5]%
+\>[5]{}\Varid{originalCount}\leftarrow \Varid{sequence}{}\<[E]%
+\\
+\>[5]{}\hsindent{4}{}\<[9]%
+\>[9]{}[\mskip1.5mu \mathbf{case}\;\Varid{key}\;\mathbf{of}{}\<[E]%
+\\
+\>[9]{}\hsindent{4}{}\<[13]%
+\>[13]{}\Conid{FVar}\;\Varid{name}\to \Varid{putStrLn}\;(\text{\ttfamily \char34 c~\char34}\plus \Varid{name}\plus \text{\ttfamily \char34 ~=~\char34}\plus \Varid{show}\;\Varid{value})\sequ \Varid{return}\;\mathrm{1}{}\<[E]%
+\\
+\>[9]{}\hsindent{4}{}\<[13]%
+\>[13]{}\anonymous \to \Varid{return}\;\mathrm{0}{}\<[E]%
+\\
+\>[5]{}\hsindent{4}{}\<[9]%
+\>[9]{}\mid (\Varid{key},\Varid{value})\leftarrow \Varid{\Conid{Map}.toList}\;\Varid{names}{}\<[E]%
+\\
+\>[5]{}\hsindent{4}{}\<[9]%
+\>[9]{}\mskip1.5mu]{}\<[E]%
+\\
+\>[B]{}\hsindent{5}{}\<[5]%
+\>[5]{}\mathbf{let}\;\Varid{totalCount}\mathrel{=}\Varid{\Conid{Map}.size}\;\Varid{names}{}\<[E]%
+\\
+\>[B]{}\hsindent{5}{}\<[5]%
+\>[5]{}\Varid{putStrLn}\mathbin{\$}\text{\ttfamily \char34 c~\$root~=~\char34}\plus \Varid{show}\;\Varid{totalCount}{}\<[E]%
+\\
+\>[B]{}\hsindent{5}{}\<[5]%
+\>[5]{}\Varid{putStrLn}\mathbin{\$}\text{\ttfamily \char34 p~cnf~\char34}\plus \Varid{show}\;\Varid{totalCount}\plus \text{\ttfamily '~'}\mathbin{:}\Varid{show}\;(\Varid{length}\;\Varid{cnf}){}\<[E]%
+\\
+\>[B]{}\hsindent{5}{}\<[5]%
+\>[5]{}\Varid{sequence\char95 }\;{}\<[E]%
+\\
+\>[5]{}\hsindent{4}{}\<[9]%
+\>[9]{}[\mskip1.5mu \Varid{sequence\char95 }\;[\mskip1.5mu \Varid{putStr}\;(\Varid{show}\;\Varid{item}\plus \text{\ttfamily \char34 ~\char34})\mid \Varid{item}\leftarrow \Varid{clause}\mskip1.5mu]\sequ \Varid{putStrLn}\;\text{\ttfamily \char34 0\char34}{}\<[E]%
+\\
+\>[5]{}\hsindent{4}{}\<[9]%
+\>[9]{}\mid \Varid{clause}\leftarrow \Varid{toList}\;\Varid{cnf}{}\<[E]%
+\\
+\>[5]{}\hsindent{4}{}\<[9]%
+\>[9]{}\mskip1.5mu]{}\<[E]%
+\\[\blanklineskip]%
+\>[B]{}\Varid{main}\mathbin{::}\Conid{IO}\;(){}\<[E]%
+\\
+\>[B]{}\Varid{main}\mathrel{=}\mathbf{do}{}\<[E]%
+\\
+\>[B]{}\hsindent{5}{}\<[5]%
+\>[5]{}\Varid{contents}\leftarrow \Varid{\Conid{T}.getContents}{}\<[E]%
+\\
+\>[B]{}\hsindent{5}{}\<[5]%
+\>[5]{}\mathbf{case}\;\Varid{parse}\;\Varid{formula}\;\text{\ttfamily \char34 vstup\char34}\;\Varid{contents}\;\mathbf{of}{}\<[E]%
+\\
+\>[5]{}\hsindent{4}{}\<[9]%
+\>[9]{}\Conid{Right}\;\Varid{f}\to \mathbf{do}{}\<[E]%
+\\
+\>[9]{}\hsindent{4}{}\<[13]%
+\>[13]{}\mathbf{let}\;\Varid{result}\mathrel{=}\Varid{execState}\;(\Varid{encode}\;\Varid{f})\;\Conid{EncoderState}\;\{\mskip1.5mu \Varid{formulaNames}\mathrel{=}\Varid{mempty},\Varid{cnfRepr}\mathrel{=}\Varid{mempty}\mskip1.5mu\}{}\<[E]%
+\\
+\>[9]{}\hsindent{4}{}\<[13]%
+\>[13]{}\Varid{prettyPrint}\;\Varid{result}{}\<[E]%
+\\
+\>[5]{}\hsindent{4}{}\<[9]%
+\>[9]{}\Conid{Left}\;\Varid{e}\to \Varid{print}\;\Varid{e}{}\<[E]%
+\ColumnHook
+\end{hscode}\resethooks
+
 
 \end{document}

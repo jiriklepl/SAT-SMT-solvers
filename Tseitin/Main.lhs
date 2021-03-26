@@ -9,12 +9,16 @@ First, we want some imports:
 
 \begin{code}
 module Main where
-import Text.Megaparsec
+import Text.Megaparsec hiding (State)
 import Text.Megaparsec.Char
 import qualified Text.Megaparsec.Char.Lexer as L
-import Data.Text
+import qualified Data.Text as T
+import qualified Data.Text.IO as T
 import Data.Void
-import Control.Monad.State as State
+import Data.Foldable
+import qualified Data.Map as Map
+import qualified Data.Set as Set
+import Control.Monad.State 
 import Control.Monad (void)
 \end{code}
 
@@ -25,17 +29,17 @@ Then, we add some boilerplate:
 lexeme :: Parser a -> Parser a
 lexeme = L.lexeme space
 
-symbol :: Text -> Parser Text
+symbol :: T.Text -> Parser T.Text
 symbol = L.symbol space
 
-packSymbol :: String -> Parser Text
-packSymbol = symbol . pack
+packSymbol :: String -> Parser T.Text
+packSymbol = symbol . T.pack
 
 parens :: Parser a -> Parser a
 parens = between (packSymbol "(") (packSymbol ")")
 \end{code}
 
-The input file contains a description of a single formula in NNF using a very simplified SMT-LIB format following grammatical rules:
+We rewrite the following grammar into haskell:
 
 \begin{verbatim}
 <formula> ::= `(' `and' <formula> <formula> `)'
@@ -44,13 +48,13 @@ The input file contains a description of a single formula in NNF using a very si
           | <variable>
 \end{verbatim}
 
-We rewrite those into haskell:
-
 \begin{code}
 formula :: Parser Formula
-formula = parens $ do packSymbol "and" >> FAnd <$> formula <*> formula
-                   <|> do packSymbol "or" >> FOr <$> formula <*> formula
-                   <|> do packSymbol "not" >> FNot <$> variable
+formula =  try ( parens $ do packSymbol "and" >> FAnd <$> formula <*> formula
+                      <|> do packSymbol "or" >> FOr <$> formula <*> formula
+                      <|> do packSymbol "not" >> FNeg . FVar <$> variable
+               )
+            <|> do FVar <$> variable
 
 variable :: Parser Variable
 variable = lexeme $ (pure <$> letterChar) <> many alphaNumChar 
@@ -59,13 +63,13 @@ variable = lexeme $ (pure <$> letterChar) <> many alphaNumChar
 And then we define the supporting types:
 
 \begin{code}
-type Parser = Parsec Void Text
+type Parser = Parsec Void T.Text
 
 data Formula = FAnd Formula Formula
              | FOr Formula Formula
-             | FNot Variable
+             | FNeg Formula
              | FVar Variable
-             deriving (Eq, Ord)
+             deriving (Eq, Ord, Show)
 
 type Variable = String
 \end{code}
@@ -76,11 +80,75 @@ Now we can define the encoding:
 
 \begin{code}
 
-encode' :: Formula -> Encoder ()
-encode' (FAnd left right) = 0 
+encode f = do
+    name <- encode' f
+    modify (\state -> state{cnfRepr=[name] `Set.insert` cnfRepr state})
+
+encode' :: Formula -> Encoder Int
+encode' f@(FAnd left right) = do
+    leftName <- encode' left
+    rightName <- encode' right
+    name <- getName f
+    state@EncoderState{cnfRepr=cnf} <- get
+    put state{cnfRepr=foldr Set.insert cnf [[-name, leftName], [-name, rightName], [-leftName, -rightName, name]]}
+    return name
+
+encode' (FOr left right) = encode' . FNeg $ FAnd (FNeg left) (FNeg right)
+encode' (FNeg f) = negate <$> encode' f
+encode' f@FVar{} = getName f
+
+getName :: Formula -> Encoder Int
+getName f = do
+    state@EncoderState{formulaNames=names} <- get
+    case f `Map.lookup` names of
+        Just i -> return i
+        Nothing -> do
+            let name = Map.size names + 1
+            put state{formulaNames=Map.insert f name names}
+            return name
+
 
 \end{code}
 
+\begin{code}
+type Encoder = State EncoderState
+
+data EncoderState = EncoderState
+    { formulaNames :: Map.Map Formula Int
+    , cnfRepr :: Set.Set [Int]
+    }
+\end{code}
+
+
+\begin{code}
+
+prettyPrint :: EncoderState -> IO ()
+prettyPrint EncoderState{formulaNames=names, cnfRepr=cnf} = do
+    originalCount <- sequence
+        [ case key of 
+            FVar name -> putStrLn ("c " ++ name ++ " = " ++ show value) >> return 1
+            _ -> return 0
+        | (key, value) <- Map.toList names
+        ]
+    let totalCount = Map.size names
+    putStrLn $ "c $root = " ++ show totalCount
+    putStrLn $ "p cnf " ++ show totalCount ++ ' ' : show (length cnf)
+    sequence_
+        [ sequence_ [ putStr (show item ++ " ") | item <- clause] >> putStrLn "0"
+        | clause <- toList cnf
+        ]
+    
+    
+
+main :: IO ()
+main = do
+    contents <- T.getContents
+    case parse formula "vstup" contents of
+        Right f -> do
+            let result = execState (encode f) EncoderState{formulaNames=mempty, cnfRepr=mempty}
+            prettyPrint result
+        Left e -> print e
+\end{code}
 
 
 \end{document}
