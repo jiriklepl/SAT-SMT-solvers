@@ -1,4 +1,4 @@
 cradle:
   cabal:
-    - path: "./Main.lhs"
-      component: "Tseitin:exe:Tseitin"
+    - path: "./"
+      component: "lib:Tseitin"

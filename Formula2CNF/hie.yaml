@@ -1,0 +1,4 @@
+cradle:
+  cabal:
+    - path: "./Main.hs"
+      component: "Formula2CNF:exe:formula2CNF"

@@ -1,6 +1,6 @@
 cabal-version:       2.4
 
-name:                Tseitin
+name:                Formula2CNF
 version:             0.1.0.0
 -- synopsis:
 -- description:
@@ -13,14 +13,14 @@ maintainer:          jiriklepl@seznam.cz
 -- category:
 extra-source-files:  CHANGELOG.md
 
-library
-  exposed-modules:    Tseitin
+executable formula2cnf
+  main-is:             Main.hs
   -- other-modules:
   -- other-extensions:
   build-depends:       base ^>=4.13.0.0,
-                       megaparsec ^>=9.0.1,
                        text ^>=1.2.4.0,
-                       mtl ^>=2.2.2,
                        containers ^>=0.6.2.1,
+
+                       Tseitin
   -- hs-source-dirs:
   default-language:    Haskell2010
