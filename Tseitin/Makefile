@@ -1,10 +1,7 @@
-.PHONY: build run pdf
+.PHONY: build pdf
 
 build:
 	@cabal build
-
-run:
-	@cabal run
 
 pdf: Tseitin.pdf
 
