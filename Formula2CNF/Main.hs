@@ -1,14 +1,15 @@
 {-# LANGUAGE LambdaCase #-}
+
 module Main where
 import System.Environment
 import System.IO
 import qualified Data.Text as T
 import qualified Data.Text.IO as T
-import Data.Foldable
-import Data.Maybe
 import qualified Data.Map as Map
 import qualified Data.Set as Set
 import Data.List
+import Data.Foldable
+import Data.Maybe
 
 import Tseitin
 
@@ -25,7 +26,7 @@ prettyPrint handle EncoderState{formulaNames=names, cnfRepr=cnf} = do
     hPutStrLn handle $ "p cnf " ++ show totalCount ++ ' ' : show (length cnf)
     sequence_
         [ sequence_ [ hPutStr handle (show item ++ " ") | item <- Set.toList clause] >> hPutStrLn handle "0"
-        | clause <- toList cnf
+        | Clause clause <- toList cnf
         ]
 
 main :: IO ()

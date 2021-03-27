@@ -4,7 +4,6 @@ import Text.Megaparsec hiding (State)
 import Text.Megaparsec.Char
 import qualified Text.Megaparsec.Char.Lexer as L
 import qualified Data.Text as T
-import qualified Data.Text.IO as T
 import Data.Void
 import qualified Data.Map as Map
 import qualified Data.Set as Set
@@ -64,17 +63,28 @@ runParse = parse formula
 -}
 
 type Encoder = State EncoderState
+type Cnf = Set.Set Clause
+newtype Clause = Clause (Set.Set Int) deriving (Eq)
+
+instance Ord Clause where
+    compare (Clause c) (Clause d) = case compare (Set.size c) (Set.size d) of
+        EQ -> compare c d
+        ord -> ord
+
+instance Show Clause where
+    show (Clause c) = show c
+
 
 data EncoderState = EncoderState
     { formulaNames :: Map.Map Formula Int
-    , cnfRepr :: Set.Set (Set.Set Int)
+    , cnfRepr :: Cnf
     , equiv :: Bool
     }
 
 encode :: Formula -> Encoder ()
 encode f = do
     name <- encode' f
-    modify (\state -> state{cnfRepr=Set.singleton name `Set.insert` cnfRepr state})
+    modify (\state -> state{cnfRepr=Clause (Set.singleton name) `Set.insert` cnfRepr state})
 
 encode' :: Formula -> Encoder Int
 encode' f@(FAnd left right) = do
@@ -82,11 +92,11 @@ encode' f@(FAnd left right) = do
     rightName <- encode' right
     name <- getName f
     modify (\state ->
-        state{cnfRepr=Set.fromList [-name, leftName] `Set.insert` cnfRepr state})
+        state{cnfRepr=Clause (Set.fromList [-name, leftName]) `Set.insert` cnfRepr state})
     modify (\state ->
-        state{cnfRepr=Set.fromList [-name, rightName] `Set.insert` cnfRepr state})
+        state{cnfRepr=Clause (Set.fromList [-name, rightName]) `Set.insert` cnfRepr state})
     gets equiv >>= flip when (modify (\state ->
-        state{cnfRepr=Set.fromList [-leftName, -rightName, name] `Set.insert` cnfRepr state}))
+        state{cnfRepr=Clause (Set.fromList [-leftName, -rightName, name]) `Set.insert` cnfRepr state}))
     return name
 
 encode' (FOr left right) = encode' . FNeg $ FAnd (FNeg left) (FNeg right)
