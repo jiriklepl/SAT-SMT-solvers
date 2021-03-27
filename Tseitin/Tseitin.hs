@@ -7,7 +7,9 @@ import qualified Data.Text as T
 import Data.Void
 import qualified Data.Map as Map
 import qualified Data.Set as Set
-import Control.Monad.State 
+import Control.Monad.State
+
+import Clause
 
 {-
     First, we define some boilerplate code
@@ -42,7 +44,7 @@ data Formula = FAnd Formula Formula
              | FOr Formula Formula
              | FNeg Formula
              | FVar Variable
-             deriving (Eq, Ord, Show)
+             deriving (Eq, Ord)
 
 type Variable = String
 
@@ -63,17 +65,6 @@ runParse = parse formula
 -}
 
 type Encoder = State EncoderState
-type Cnf = Set.Set Clause
-newtype Clause = Clause (Set.Set Int) deriving (Eq)
-
-instance Ord Clause where
-    compare (Clause c) (Clause d) = case compare (Set.size c) (Set.size d) of
-        EQ -> compare c d
-        ord -> ord
-
-instance Show Clause where
-    show (Clause c) = show c
-
 
 data EncoderState = EncoderState
     { formulaNames :: Map.Map Formula Int

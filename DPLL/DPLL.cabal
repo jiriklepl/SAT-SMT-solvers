@@ -23,6 +23,8 @@ executable dpll
                        mtl ^>=2.2.2,
                        time ^>=1.11.1.1,
 
-                       Tseitin
+                       Tseitin,
+                       DIMACS,
+                       Clause,
   -- hs-source-dirs:
   default-language:    Haskell2010

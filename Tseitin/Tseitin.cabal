@@ -22,5 +22,7 @@ library
                        text ^>=1.2.4.0,
                        mtl ^>=2.2.2,
                        containers ^>=0.6.2.1,
+
+                       Clause,
   -- hs-source-dirs:
   default-language:    Haskell2010

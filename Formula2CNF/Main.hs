@@ -12,6 +12,7 @@ import Data.Foldable
 import Data.Maybe
 
 import Tseitin
+import Clause
 
 prettyPrint :: Handle -> EncoderState -> IO ()
 prettyPrint handle EncoderState{formulaNames=names, cnfRepr=cnf} = do
