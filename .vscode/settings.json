@@ -5,8 +5,10 @@
         "Repr",
         "Semigroup",
         "Tseitin",
+        "dimacs",
         "documentclass",
         "foldr",
+        "hspace",
         "mempty",
         "parens",
         "polycode"
