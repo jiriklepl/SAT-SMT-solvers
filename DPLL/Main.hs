@@ -145,7 +145,7 @@ runSatisfier handle cnf names = do
                 else hPrint handle $ catMaybes
                     ((\i -> if i > 0 then i `Map.lookup` names else ('-' :) <$> negate i `Map.lookup` names) <$> assigns)
             hPutStrLn handle $ "Decisions: " <> show decs
-            hPutStrLn handle $ "Implied variables: " <> show impls
+            hPutStrLn handle $ "Implied assignments: " <> show impls
             hPutStrLn handle $
                 "Found after " <> show (sumDecs + length decs) <>
                 " decisions and " <> show (sumImpls + length impls) <>
