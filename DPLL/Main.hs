@@ -139,7 +139,7 @@ runSatisfier handle cnf names = do
             return end
         (assigns, _, decs, impls):_ -> do
             end <- getCurrentTime
-            hPutStr handle $ "Satisfied by "
+            hPutStr handle "Satisfied by "
             if names == mempty
                 then hPrint handle (sortBy (\a b -> abs a `compare` abs b) assigns)
                 else hPrint handle $ catMaybes
