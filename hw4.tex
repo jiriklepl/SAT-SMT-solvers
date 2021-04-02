@@ -1,0 +1,73 @@
+\documentclass[a4paper,12pt]{article} % This defines the style of your paper
+
+\usepackage[top = 2.5cm, bottom = 2.5cm, left = 2.5cm, right = 2.5cm]{geometry} 
+
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}
+
+\usepackage{multirow} % Multirow is for tables with multiple rows within one cell.
+\usepackage{booktabs} % For even nicer tables.
+
+\usepackage{amsmath} 
+\usepackage{graphicx}
+
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+
+
+\newtheorem{definition}{Definition}
+\newtheorem{observation}{Observation}[definition]
+
+\usepackage{setspace}
+\setlength{\parindent}{0in}
+\setlength{\parskip}{.5em}
+
+\begin{document}
+
+\begin{center}
+    {\Large \bf Homework 4}
+    \vspace{2mm}
+
+    {\bf Jiří Klepl}
+
+\end{center}
+
+\vspace{0.4cm}
+
+\begin{quote}
+    (10 points) Show that every CNF $\varphi$ can be translated in polynomial time into an equisatisfiable
+    CNF $\psi$ which is a conjunction of a 2-CNF and a Horn formula. How many additional variables
+    are needed?
+\end{quote}
+
+Let $T$ denote the translation from $\varphi$ to $\psi$. First, we do few observations:
+
+\begin{itemize}
+    \item
+    Any variable in $\varphi$ with no positive or with no negative literal occurrence trivially satisfies the clauses it appears in. The same applies to all clauses which contain a positive and a negative literal occurrence of a certain variable.
+    \item
+    Any clause $C$ in $\varphi$ with less than two positive literals is already a Horn clause and we can simplify the translation from $T(\varphi) = \psi$ to $T(\varphi') \wedge C = \psi$, where $\varphi'$ is $\varphi$ without the clause $C$.
+\end{itemize}
+
+So, without loss of generality, we can assume $\varphi$ consists of clauses such that each has at least two positive literals, and that every variable has a positive and a negative occurrence and never in the same clause.
+
+Then we will describe the algorithm for $T(\varphi)$ as follows:
+
+\begin{algorithmic}[1]
+    \Function{$T$}{$\varphi$}
+    \State $\varphi' \gets \top$
+    \While{$\varphi \not\in \textbf{Horn}$}
+        \State $x \gets \text{a variable with most positive occurrences in non-Horn clauses}$
+        \State $l \gets \text{Lit } x$
+        \State $x' \gets \text{fresh variable}$
+        \State $\varphi' \gets \varphi' \wedge (x \vee x') \wedge (\neg x \vee \neg x')$
+        \State $\varphi \gets \varphi[l := \neg x']$ \Comment rewrite positive occurrences of $x$ with $\neg x'$
+    \EndWhile
+    \State \Return $\varphi \wedge \varphi'$
+    \EndFunction
+\end{algorithmic}
+
+The needed number of fresh variables is $\leq|\mathbf{x}|$ (if we consider only the variables with positive occurrences in clauses with at least two positive literals). We could achieve a slightly higher number with tseitin transformation of the maximal positive subsets of clauses.
+
+\end{document}
