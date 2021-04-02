@@ -30,7 +30,9 @@ data SatisfierState = SatState
 type Satisfier = StateT SatisfierState []
 
 instance Semigroup (Satisfier a) where
-    (StateT f) <> (StateT g) = StateT (\s -> f s <> g s)
+    (StateT f) <> (StateT g) = StateT (\s -> do
+        (a, s') <- f s
+        (a, s') : g s')
 
 instance Monoid (Satisfier a) where
     mempty = StateT $ const []
