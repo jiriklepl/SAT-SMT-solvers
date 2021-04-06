@@ -17,6 +17,6 @@ Then the R script [script.R](script.R) generated the comparison plot:
 
 ![plot.png](plot.png)
 
-The plot clearly shows that minisat found the proof for the problem much faster than its opponents, it finds the proof quite efficiently and its running time is extremely stable.
+The plot clearly shows that minisat found the proofs for the problem much faster than its opponents, it finds the proofs quite efficiently regardless of the size and its running time is extremely stable.  Off-record experimenting showed it continues in this trend even further (but the cnf files get to ridiculous sizes)
 
 Lingeling seems to fail at finding an efficient proof and it seems the solution time for subsequent calls would be exponential. It spent 72.2 seconds finding the solution to queens-100.
