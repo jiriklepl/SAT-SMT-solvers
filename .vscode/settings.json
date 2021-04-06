@@ -12,5 +12,8 @@
         "mempty",
         "parens",
         "polycode"
-    ]
+    ],
+    "files.associations": {
+        "iosfwd": "cpp"
+    }
 }
