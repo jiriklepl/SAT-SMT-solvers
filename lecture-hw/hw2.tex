@@ -38,21 +38,17 @@ tautology (i.e. there is another literal $l_D \in D$ such that $\neg l_D \in C$)
 $\varphi \setminus \{C\}$, i.e. $\varphi$ is satisfiable if and only if $\varphi \setminus \{C\}$ is satisfiable.
 \end{quote}
 
-Let $\alpha$ be an assignment over the variables of $\varphi$. Then we have the following two options:
+We can rewrite $\varphi$ to $C \wedge \varphi_D \wedge \varphi_r$ where $\varphi_D$ contains the clauses $D$ and $\varphi_r$ the clauses of $\varphi$ that don't contain neither $l$ nor $\neg l$.
 
-\begin{enumerate}
-    \item $\neg l_D \in \alpha$ for at least one of the clauses $D$: then under the assumption $\neg l_D \in \alpha$ it holds that $\varphi$ and $\varphi \setminus \{C\}$ are equisatisfiable as $C$ is a tautology under the assumption and removing a tautology has no effect on satisfiability.
-    \item $l_D \in \alpha$ for each of the clauses $D$: We know that $l$ is not present in any clause other than $C$ and all clauses that contain $\neg l$ are tautologies under the assumption $\{l_D | \text{for every } D\} \subseteq \alpha$. If $\alpha$ such that $\neg l \in \alpha$ satisfies $\varphi$, then $\alpha' = \alpha \triangle \{l, \neg l\}$ also satisfies $\varphi$. This learned fact can be formalized into a clause as follows:
-    \begin{definition}[Learned fact]
-        \label{learned_fact}
-        $$\bigwedge \{l_D | \text{for every } D\} \to \{l\} \equiv \{\neg l_D | \text{for every } D\} \cup \{l\} \equiv A$$
-    \end{definition}
-    Then we can easily notice that $A \subseteq C$ and therefore the clause $C$ is a tautology under the assumption $\{l_D | \text{for every } D\} \cup \{l\} \subseteq \alpha$ implied by $A$ from the original assumption; and, similarly to the first option, this means that $\varphi$ and $\varphi \setminus \{C\}$ are equisatisfiable under the assumption $\{l_D | \text{for every } D\} \subseteq \alpha$.
-\end{enumerate}
 
-\begin{observation}
-    The fact $A$ in definition \ref{learned_fact} can be directly deduced from the setup; and $C$ is weaker than or equivalent to $A$. And therefore, $C$ is also a fact.
-\end{observation}
+It holds that $C \wedge \varphi_D \wedge \varphi_r \equiv (\neg l \to C') \wedge (l \to \varphi_D') \wedge \varphi_r$ where $C'$ is the clause $C$ after removing the literal $l$ and $\varphi_D'$ consist of the clauses $D$ after removing the literal $\neg l$.
 
+And then, since neither of $C'$, $\varphi_D'$, nor $\varphi_r$ contain either of the literals $l$ and $\neg l$, it holds that $(\neg l \to C') \wedge (l \to \varphi_D') \wedge \varphi_r \equiv (C' \vee \varphi_D') \wedge \varphi_r$.
+
+Then, from distributivity of $\vee$ and $\wedge$, we get $(C' \vee \varphi_D') \wedge \varphi_r \equiv (\bigwedge \{C' \vee D' | D' \in \varphi_D'\}) \wedge \varphi_r = (\bigwedge \{Res_l(C \vee D) | D \in \varphi_D\}) \wedge \varphi_r$ (the equality follows the definition of $C'$ and $\varphi_D'$ from $C$ and $\varphi_D$).
+
+The assignment declares that $Res_l(C, D)$ is a tautology for every $D \in \varphi_D$, and thus $(\bigwedge \{Res_l(C \vee D) | D \in \varphi_D\}) \wedge \varphi_r \equiv \varphi_r$.
+
+And, since we proofed that $\varphi = C \wedge \varphi_D \wedge \varphi_r \equiv \varphi_r$, it follows that $\varphi \equiv \varphi \setminus \{C\} = \varphi_D \wedge \varphi_r$, otherwise $\varphi$ and $\varphi_r$ wouldn't be equivalent.
 
 \end{document}
