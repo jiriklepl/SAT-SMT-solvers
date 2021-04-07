@@ -13,25 +13,32 @@ Please, do not copy :)
 - ghc
 - cabal-install
 
+All those prerequisites are present on the school lab computers.
+
 ### **Tseitin Encoding and DIMACS Format**
 
-Source files: [Formula2CNF](Formula2CNF)
+- source files: [Formula2CNF](Formula2CNF)
+- useful test-files: [test](test)
 
 **Build & run** easily (from the root folder) by:
 
 ```sh
-cabal run formula2cnf [--impl] [inputFile [outputFile]]
+cabal run formula2cnf -- [--impl] [inputFile [outputFile]]
 ```
+
+`cabal run -v0 formula2cnf -- [--impl] [inputFile [outputFile]]` allows the program to be run in a pipeline if testing the following assignment
 
 ### **DPLL Algorithm**
 
-Source files: [DPLL](DPLL)
+- Source files: [DPLL](DPLL)
+- Useful test-files: [test](test)
 
 **Build & run** easily (from the root folder) by:
 
 ```sh
-cabal run dpll [--sat|--cnf] [inputFile [outputFile]]
+cabal run dpll -- [--sat|--cnf] [inputFile [outputFile]]
 ```
+
 
 If no format option is used, the program derives it from the extension of the file.
 
