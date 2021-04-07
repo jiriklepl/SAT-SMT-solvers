@@ -82,8 +82,8 @@ main = do
             (\case '-':'-':rest -> True
                    _ -> False)
             args
-        dimacsOpt = "--dimacs" `elem` options
-        satlibOpt = "--satlib" `elem` options
+        dimacsOpt = "--cnf" `elem` options
+        satlibOpt = "--sat" `elem` options
         (input, output) = case arguments of
             [i, o] -> (Just i, Just o)
             [i] -> (Just i, Nothing)
