@@ -43,12 +43,12 @@ We can rewrite $\varphi$ to $C \wedge \varphi_D \wedge \varphi_r$ where $\varphi
 
 It holds that $C \wedge \varphi_D \wedge \varphi_r \equiv (\neg l \to C') \wedge (l \to \varphi_D') \wedge \varphi_r$ where $C'$ is the clause $C$ after removing the literal $l$ and $\varphi_D'$ consist of the clauses $D$ after removing the literal $\neg l$.
 
-And then, since neither of $C'$, $\varphi_D'$, nor $\varphi_r$ contain either of the literals $l$ and $\neg l$, it holds that $(\neg l \to C') \wedge (l \to \varphi_D') \wedge \varphi_r \equiv (C' \vee \varphi_D') \wedge \varphi_r$.
+And then, since neither of $C'$, $\varphi_D'$, nor $\varphi_r$ contain either of the literals $l$ and $\neg l$, it holds that $(\neg l \to C') \wedge (l \to \varphi_D') \wedge \varphi_r \equiv_{SAT} (C' \vee \varphi_D') \wedge \varphi_r$.
 
 Then, from distributivity of $\vee$ and $\wedge$, we get $(C' \vee \varphi_D') \wedge \varphi_r \equiv (\bigwedge \{C' \vee D' | D' \in \varphi_D'\}) \wedge \varphi_r = (\bigwedge \{Res_l(C \vee D) | D \in \varphi_D\}) \wedge \varphi_r$ (the equality follows the definition of $C'$ and $\varphi_D'$ from $C$ and $\varphi_D$).
 
 The assignment declares that $Res_l(C, D)$ is a tautology for every $D \in \varphi_D$, and thus $(\bigwedge \{Res_l(C \vee D) | D \in \varphi_D\}) \wedge \varphi_r \equiv \varphi_r$.
 
-And, since we proofed that $\varphi = C \wedge \varphi_D \wedge \varphi_r \equiv \varphi_r$, it follows that $\varphi \equiv \varphi \setminus \{C\} = \varphi_D \wedge \varphi_r$, otherwise $\varphi$ and $\varphi_r$ wouldn't be equivalent.
+And, since we proved that $\varphi = C \wedge \varphi_D \wedge \varphi_r \equiv_{SAT} \varphi_r$, it follows that $\varphi \equiv_{SAT} \varphi \setminus \{C\} = \varphi_D \wedge \varphi_r$, otherwise $\varphi$ and $\varphi_r$ wouldn't be equivalent.
 
 \end{document}

@@ -33,8 +33,7 @@
 
 \begin{quote}
     (10 points) One of the preprocessing steps can be to eliminate some of the variables using so-called
-DP-elimination (or DP-resolution). In particular, assume we have a CNF $\varphi$ and a variable $x$ which
-we want to eliminate. Denote
+DP-elimination (or DP-resolution). In particular, assume we have a CNF $\varphi$ and a variable $x$ which we want to eliminate. Denote
 $$\varphi_0 = \{C \in \varphi | \neg x \in C\}$$
 $$\varphi_1 = \{C \in \varphi | x \in C\}$$
 $$\varphi_r = \{C \in \varphi | C \cap \{x, \neg x\} = \emptyset\}$$
@@ -49,10 +48,10 @@ It follows that: $\varphi_0 \equiv \{x \to C  | C \in \varphi_0'\}, \varphi_1 \e
 and from that: $\varphi_0 \equiv x \to \{C  | C \in \varphi_0'\}, \varphi_1 \equiv \neg x \to \{C  | C \in \varphi_1'\}$ \\
 and $\varphi_0 \wedge \varphi_1 \equiv x \to \{C  | C \in \varphi_0'\} \wedge \neg x \to \{C  | C \in \varphi_1'\}$
 and (since those are the only two occurences of variable $x$):
-$$\varphi_0 \wedge \varphi_1 \equiv \{C  | C \in \varphi_0'\} \vee \{C  | C \in \varphi_1'\}$$
-From distributivity of $\wedge$ and $\vee$ and the previous: $\varphi_0 \wedge \varphi_1 \equiv \{C_0 \vee C_1 | C_0 \in \varphi_0', C_1 \in \varphi_1'\}$
+$$\varphi_0 \wedge \varphi_1 \equiv_{SAT} \{C  | C \in \varphi_0'\} \vee \{C  | C \in \varphi_1'\}$$
+From distributivity of $\wedge$ and $\vee$ and the previous: $\varphi_0 \wedge \varphi_1 \equiv_{SAT} \{C_0 \vee C_1 | C_0 \in \varphi_0', C_1 \in \varphi_1'\}$
 
-We can finalize this as follows: $$\varphi_0 \wedge \varphi_1 \equiv \{C_0 \vee C_1 | C_0 \in \varphi_0', C_1 \in \varphi_1'\} \overset{Def}{=} \{Res(\{\neg x\} \cup C_0, \{x\} \cup C_1) | C_0 \in \varphi_0', C_1 \in \varphi_1'\} \overset{\left(1\right)}{=} $$
+We can finalize this as follows: $$\varphi_0 \wedge \varphi_1 \equiv_{SAT} \{C_0 \vee C_1 | C_0 \in \varphi_0', C_1 \in \varphi_1'\} \overset{Def}{=} \{Res(\{\neg x\} \cup C_0, \{x\} \cup C_1) | C_0 \in \varphi_0', C_1 \in \varphi_1'\} \overset{\left(1\right)}{=} $$
 $$\{Res(C_0, C_1) | C_0 \in \varphi_0, C_1 \in \varphi_1\} = \varphi_{dp}$$
 
 
