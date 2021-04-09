@@ -1,49 +1,25 @@
-#include <memory>
-#include <utility>
+#ifndef SATLIB_HPP
+#define SATLIB_HPP
 
-class Formula {
+#include  <iostream>
+#include  <string>
+#include  <cstdint>
+#include  <unordered_map>
+#include  <memory>
+
+using lit_t = std::int32_t;
+
+class satlib_parser {
 public:
-    virtual ~Formula() noexcept = 0;
+    satlib_parser() : names(), cnf(), var_counter(0) {}
+    virtual ~satlib_parser() noexcept = 0;
+    std::unordered_map<std::string, lit_t> names;
+    std::vector<std::vector<lit_t>> cnf;
+    lit_t var_counter;
 };
 
-inline Formula::~Formula() noexcept = default;
+inline satlib_parser::~satlib_parser() = default;
 
-class AndFormula : public Formula {
-public:
-    ~AndFormula() noexcept override = default;
-    AndFormula(std::unique_ptr<Formula> left, std::unique_ptr<Formula> right) :
-        left(std::move(left)), right(std::move(right)) {}
-    std::unique_ptr<Formula> left, right;
-};
+std::unique_ptr<satlib_parser> satlib_parse(std::istream &in);
 
-class OrFormula : public Formula {
-public:
-    ~OrFormula() noexcept override = default;
-    OrFormula(std::unique_ptr<Formula> left, std::unique_ptr<Formula> right) :
-        left(std::move(left)), right(std::move(right)) {}
-    std::unique_ptr<Formula> left, right;
-};
-
-class NotFormula : public Formula {
-public:
-    ~NotFormula() noexcept override = default;
-    NotFormula(std::string value) : inner(value) {}
-    std::string inner;
-};
-
-class PosFormula : public Formula {
-public:
-    ~PosFormula() noexcept override = default;
-    PosFormula(std::string value) : inner(value) {}
-    std::string inner;
-};
-
-enum Token {
-    FORMULA,
-    AND,
-    OR,
-    NOT,
-    LPAR,
-    RPAR,
-    VAR
-};
+#endif // SATLIB_HPP
