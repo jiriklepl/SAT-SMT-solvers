@@ -149,10 +149,16 @@ public:
                     clause.remove(clause.find(variable));
                     for (auto &&l : clause) {
                         if (l > 0) {
-                            std::size_t n = adj.adjacency[l].erase(a);
+                          #if (DEBUG || !NDEBUG)
+                            std::size_t n = 
+                          #endif
+                            adj.adjacency[l].erase(a);
                             assert(n == 1);
                         } else {
-                            std::size_t n = adj.adjacency[-l].erase(-a);
+                          #if (DEBUG || !NDEBUG)
+                            std::size_t n = 
+                          #endif
+                            adj.adjacency[-l].erase(-a);
                             assert(n == 1);
                         }
                     }
@@ -175,10 +181,16 @@ public:
                     clause.remove(clause.find(-variable));
                     for (auto &&l : clause) {
                         if (l > 0) {
-                            std::size_t n = adj.adjacency[l].erase(-a);
+                          #if (DEBUG || !NDEBUG)
+                            std::size_t n = 
+                          #endif
+                            adj.adjacency[l].erase(-a);
                             assert(n == 1);
                         } else {
-                            std::size_t n = adj.adjacency[-l].erase(a);
+                          #if (DEBUG || !NDEBUG)
+                            std::size_t n = 
+                          #endif
+                            adj.adjacency[-l].erase(a);
                             assert(n == 1);
                         }
                     }
@@ -359,6 +371,7 @@ public:
 int main(int argc, const char *argv[])
 {
     Solver<dpll_tag> solver;
+
     {
         std::unique_ptr<satlib_parser> parser;
         if (argc == 2) {
@@ -371,7 +384,7 @@ int main(int argc, const char *argv[])
         solver.set(parser->cnf);
     }
 
-    std::cout << (solver.solve(0) ? "true" : "false") << std::endl;
+    std::cout << (solver.solve(0) ? "s SATISFIABLE" : "s UNSATISFIABLE") << std::endl;
 
     for (auto &&a : solver.assign.assigned) {
         std::cout << a << ": " << (solver.assign.variables[a] > 0 ?  "true" : solver.assign.variables[a] < 0 ? "false" : "free") << std::endl;
