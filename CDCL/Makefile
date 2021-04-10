@@ -1,6 +1,6 @@
 CXX := g++
 LEXPP := flex++
-CXXOPTS := -std=c++20 -Wall -DNDEBUG -O2 -march=native
+CXXOPTS := -std=c++20 -Wall -Wextra -pedantic -DNDEBUG -O2 -march=native
 INCLUDE := include
 BINDIR := bin
 BIN := main
@@ -17,7 +17,7 @@ $(BINDIR)/$(BIN): $(OBJECT_FILES) $(BINDIR)
 $(BINDIR):
 	mkdir $@
 
-%.o: %.cpp
+%.o: %.cpp $(wildcard $(INCLUDE)/*)
 	$(CXX) -c $(CXXOPTS) $(patsubst %,-I%,$(INCLUDE)) -o $@ $<
 
 %.cpp: %.l
