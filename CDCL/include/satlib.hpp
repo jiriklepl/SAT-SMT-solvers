@@ -3,20 +3,16 @@
 
 #include  <iostream>
 #include  <string>
-#include  <cstdint>
-#include  <vector>
 #include  <unordered_map>
 #include  <memory>
 
-using lit_t = std::int32_t;
+#include "cnf_parser.hpp"
 
-class satlib_parser {
+class satlib_parser : public cnf_parser {
 public:
-    satlib_parser() : names(), cnf(), var_counter(0) {}
-    virtual ~satlib_parser() noexcept = 0;
+    satlib_parser() : cnf_parser(), names() {}
+    ~satlib_parser() noexcept override = 0;
     std::unordered_map<std::string, lit_t> names;
-    std::vector<std::vector<lit_t>> cnf;
-    lit_t var_counter;
 };
 
 inline satlib_parser::~satlib_parser() = default;

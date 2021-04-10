@@ -2,20 +2,15 @@
 #define DIMACS_HPP
 
 #include  <iostream>
-#include  <string>
 #include  <cstdint>
-#include  <vector>
-#include  <unordered_map>
 #include  <memory>
 
-using lit_t = std::int32_t;
+#include "cnf_parser.hpp"
 
-class dimacs_parser {
+class dimacs_parser : public cnf_parser {
 public:
-    dimacs_parser() : cnf(), var_counter(0) {}
-    virtual ~dimacs_parser() noexcept = 0;
-    std::vector<std::vector<lit_t>> cnf;
-    lit_t var_counter;
+    dimacs_parser() : cnf_parser() {}
+    ~dimacs_parser() noexcept override = 0;
 };
 
 inline dimacs_parser::~dimacs_parser() = default;
