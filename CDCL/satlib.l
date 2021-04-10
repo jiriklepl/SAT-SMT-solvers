@@ -23,7 +23,7 @@ enum Token {
 %option noyywrap
 %option c++
 
-ID          [a-z][a-z0-9]*
+ID          [a-zA-Z][a-zA-Z0-9]*
 
 %%
 
