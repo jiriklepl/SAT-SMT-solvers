@@ -38,6 +38,8 @@ struct iterator_impl {
 
     constexpr auto operator<=>(const iterator_impl&) const noexcept = default;
     iterator_impl &operator++() noexcept { ++where; return *this; }
+    iterator_impl &operator--() noexcept { --where; return *this; }
+    iterator_impl operator--(int) noexcept { auto tmp = *this; --where; return tmp; }
     constexpr iterator_impl operator+(std::size_t i) const noexcept { return iterator_impl(where + i); }
     constexpr std::ptrdiff_t operator-(const iterator_impl &it) const noexcept { return (std::ptrdiff_t)(where - it.where); }
     V &operator*() noexcept { return *where; }
@@ -51,7 +53,7 @@ class Clause<nowatch_tag> {
 public:
     Clause() noexcept = default;
     Clause(lit_t *start, lit_t *end) : start_(start), end_(end) {
-        assert(end > start);
+        assert(end >= start);
     }
 
     using iterator = iterator_impl<Clause, lit_t>;
@@ -129,7 +131,8 @@ struct Assignment {
 };
 
 struct AdjacencyList {
-    std::vector<std::unordered_set<lit_t>> adjacency;
+    std::vector<Clause<nowatch_tag>> adjacency;
+    std::vector<lit_t> adjacency_data;
 };
 
 struct WatchedList {
@@ -150,17 +153,9 @@ public:
                     clause.remove(clause.find(variable));
                     for (auto &&l : clause) {
                         if (l > 0) {
-                          #if (DEBUG || !NDEBUG)
-                            std::size_t n =
-                          #endif
-                            adj.adjacency[l].erase(a);
-                            assert(n == 1);
+                            adj.adjacency[l].remove(adj.adjacency[l].find(a));
                         } else {
-                          #if (DEBUG || !NDEBUG)
-                            std::size_t n =
-                          #endif
-                            adj.adjacency[-l].erase(-a);
-                            assert(n == 1);
+                            adj.adjacency[-l].remove(adj.adjacency[-l].find(-a));
                         }
                     }
                 } else {
@@ -182,17 +177,9 @@ public:
                     clause.remove(clause.find(-variable));
                     for (auto &&l : clause) {
                         if (l > 0) {
-                          #if (DEBUG || !NDEBUG)
-                            std::size_t n =
-                          #endif
-                            adj.adjacency[l].erase(-a);
-                            assert(n == 1);
+                            adj.adjacency[l].remove(adj.adjacency[l].find(-a));
                         } else {
-                          #if (DEBUG || !NDEBUG)
-                            std::size_t n =
-                          #endif
-                            adj.adjacency[-l].erase(a);
-                            assert(n == 1);
+                            adj.adjacency[-l].remove(adj.adjacency[-l].find(a));
                         }
                     }
                 }
@@ -206,12 +193,10 @@ public:
             assert(a != 0);
             const auto c = (a > 0) ? a : - a;
             auto &&clause = cnf.clauses[c];
+            if ((assign.variables[variable] > 0 && a > 0) || (assign.variables[variable] < 0 && a < 0))
             for (auto &&l : clause) {
                 assert(l != 0);
-                if (l > 0)
-                    adj.adjacency[l].emplace(c);
-                else
-                    adj.adjacency[-l].emplace(-c);
+                adj.adjacency[std::abs(l)].restore();
             }
 
             assert(std::abs(*clause.end()) == variable);
@@ -331,6 +316,8 @@ public:
         cnf.literals.resize(total_size);
         cnf.clauses.resize(list.size() + 1);
 
+        std::vector<std::unordered_set<lit_t>> adjacency;
+
         std::size_t l_counter = 0;
         std::size_t c_counter = 0;
         for (auto &&c : list) {
@@ -340,19 +327,19 @@ public:
             for (auto &&l : c) {
                 cnf.literals[l_counter++] = l;
                 std::size_t var = (l > 0) ? l : -l;
-                if (var >= adj.adjacency.size()) {
-                    adj.adjacency.resize(2 * var);
+                if (var >= adjacency.size()) {
+                    adjacency.resize(2 * var);
                     assign.variables.resize(2 * var);
                 }
 
                 assign.unassigned.emplace(var);
 
-                auto new_it = adj.adjacency[var].emplace((l > 0) ? c_counter : -(lit_t)c_counter);
+                auto new_it = adjacency[var].emplace((l > 0) ? c_counter : -(lit_t)c_counter);
                 if (new_it.second) {
-                    auto it = adj.adjacency[var].find((l < 0) ? c_counter : -(lit_t)c_counter);
-                    if (it != adj.adjacency[var].end()) {
-                        adj.adjacency[var].erase(it);
-                        adj.adjacency[var].erase(new_it.first);
+                    auto it = adjacency[var].find((l < 0) ? c_counter : -(lit_t)c_counter);
+                    if (it != adjacency[var].end()) {
+                        adjacency[var].erase(it);
+                        adjacency[var].erase(new_it.first);
 
                         --c_counter;
                         l_counter  = clause_begin;
@@ -366,6 +353,24 @@ public:
             cnf.clauses[c_counter] = Clause<nowatch_tag>(cnf.literals.data() + clause_begin, cnf.literals.data() + l_counter);
             skip_clause:;
         }
+
+        total_size = 0;
+
+        for (auto &&adj_var : adjacency)
+            total_size += adj_var.size();
+
+        adj.adjacency_data.resize(total_size);
+        std::size_t adj_count = 0;
+
+        for (auto &&adj_var : adjacency) {
+            auto adj_beg = adj_count;
+
+            for (auto &&clause : adj_var) {
+                adj.adjacency_data[adj_count++] = clause;
+            }
+
+            adj.adjacency.emplace_back(adj.adjacency_data.data() + adj_beg, adj.adjacency_data.data() + adj_count);
+        }
     }
 };
 
@@ -374,13 +379,13 @@ int main(int argc, const char *argv[])
     Solver<dpll_tag> solver;
 
     {
-        std::unique_ptr<satlib_parser> parser;
+        std::unique_ptr<dimacs_parser> parser;
         if (argc == 2) {
             auto file = std::ifstream(argv[1]);
-            parser = satlib_parse(file);
+            parser = dimacs_parse(file);
         }
         else {
-            parser = satlib_parse(std::cin);
+            parser = dimacs_parse(std::cin);
         }
         solver.set(parser->cnf);
     }
