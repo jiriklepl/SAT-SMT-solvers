@@ -1,4 +1,5 @@
 {
+    "C_Cpp.default.cppStandard": "c++20",
     "cSpell.words": [
         "DPLL",
         "Impls",
