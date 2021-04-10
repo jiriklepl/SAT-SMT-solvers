@@ -6,6 +6,7 @@
 #include <cstdint>
 
 #include "satlib.hpp"
+#include "dimacs.hpp"
 
 using lit_t = std::int32_t;
 
