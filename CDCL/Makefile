@@ -5,7 +5,7 @@ INCLUDE := include
 BINDIR := bin
 BIN := main
 
-OBJECT_FILES := main.o satlib.o
+OBJECT_FILES := main.o satlib.o dimacs.o
 
 .PHONY: all clean
 
@@ -21,7 +21,7 @@ $(BINDIR):
 	$(CXX) -c $(CXXOPTS) $(patsubst %,-I%,$(INCLUDE)) -o $@ $<
 
 %.cpp: %.l
-	$(LEXPP) -o $@ $<
+	$(LEXPP) -Cf -o $@ $<
 
 clean:
 	rm -r $(BINDIR)

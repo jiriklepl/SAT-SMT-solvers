@@ -10,6 +10,7 @@ static lit_t yylval;
 
 enum Token {
     TOK_HEAD,
+    TOK_BAD_HEAD,
     TOK_C_END,
     TOK_C_LIT,
     TOK_EOF,
@@ -17,17 +18,20 @@ enum Token {
 
 %}
 
-
-%option noyywrap
 %option c++
+%option prefix="dimacs_"
+%option noyywrap nounput batch noinput stack
+%option never-interactive
+%option nounistd
 
 CLAUSE_LIT   -?[1-9][0-9]*
 CLAUSE_END   0
 
 %%
 
-c.*\n        /* eat comments */
+c[^\n]       /* eat comments */
 "p cnf"      { return TOK_HEAD; }
+p" "?c?n?    { return TOK_BAD_HEAD; }
 
 {CLAUSE_LIT} { auto ss = std::istringstream(yytext); ss >> yylval; return TOK_C_LIT; }
 {CLAUSE_END} { return TOK_C_END; }
@@ -130,15 +134,4 @@ std::unique_ptr<dimacs_parser> dimacs_parse(std::istream &in) {
         context->cnf.size() == context->cnf.capacity()));
 
     return context;
-}
-
-int main() {
-    auto parser = dimacs_parse(std::cin);
-
-    for (auto &&clause : parser->cnf) {
-        for (auto &&lit : clause) {
-            std::cout << lit << ' ';
-        }
-        std::cout << std::endl;
-    }
 }

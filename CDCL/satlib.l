@@ -8,34 +8,41 @@
 static std::string yylval;
 
 enum Token {
-    FORMULA,
-    AND,
-    OR,
-    NOT,
-    LPAR,
-    RPAR,
-    VAR
+    TOK_FORMULA,
+    TOK_AND,
+    TOK_OR,
+    TOK_NOT,
+    TOK_LPAR,
+    TOK_RPAR,
+    TOK_VAR,
+    TOK_EOF
 };
 
 %}
 
 
-%option noyywrap
 %option c++
+%option noyywrap
+%option prefix="satlib_"
+%option noyywrap nounput batch noinput stack
+%option never-interactive
+%option nounistd
 
 ID          [a-zA-Z][a-zA-Z0-9]*
 
 %%
 
-"("         { return LPAR; }
-")"         { return RPAR; }
-"not"       { return NOT; }
-"or"        { return OR; }
-"and"       { return AND; }
+"("         { return TOK_LPAR; }
+")"         { return TOK_RPAR; }
+"not"       { return TOK_NOT; }
+"or"        { return TOK_OR; }
+"and"       { return TOK_AND; }
 
-{ID}        { yylval = yytext; return VAR; }
+{ID}        { yylval = yytext; return TOK_VAR; }
 
 [ \t\n\r]+  /* eat up whitespace */
+
+<<EOF>>      { return TOK_EOF; }
 
 .           { std::cerr << "unrecognized character: " << yytext << '\n'; }
 
@@ -44,7 +51,7 @@ ID          [a-zA-Z][a-zA-Z0-9]*
 class Context : public satlib_parser {
 public:
     Context(std::istream &in) :
-        scanner(&in), parsing{FORMULA}, values() { }
+        scanner(&in), parsing{TOK_FORMULA}, values() { }
 
     ~Context() noexcept override = default;
 
@@ -59,7 +66,7 @@ public:
 
     void parse_variable() {
         int token = scanner.yylex();
-        if (token == VAR) {
+        if (token == TOK_VAR) {
             values.push_back(get_name(yylval));
         } else {
             std::cerr << "expected a variable" << std::endl;
@@ -69,45 +76,46 @@ public:
 
     const char* translate(int what) {
         switch (what) {
-            case FORMULA: return "`formula'";
-            case AND: return "`and'";
-            case OR: return "`or'";
-            case NOT: return "`not'";
-            case LPAR: return "'('";
-            case RPAR: return "')'";
-            case VAR: return yylval.c_str();
+            case TOK_FORMULA: return "`formula'";
+            case TOK_AND: return "`and'";
+            case TOK_OR: return "`or'";
+            case TOK_NOT: return "`not'";
+            case TOK_LPAR: return "'('";
+            case TOK_RPAR: return "')'";
+            case TOK_VAR: return yylval.c_str();
             default: return "unrecognized token";
         }
     }
 
     void parse_formula() {
         int token = scanner.yylex();
-        if (token == LPAR) {
+        std::cerr << "now\n";
+        if (token == TOK_LPAR) {
             token = scanner.yylex();
             switch (token) {
-                case AND:
-                    parsing.push_back(RPAR);
-                    parsing.push_back(AND);
-                    parsing.push_back(FORMULA);
-                    parsing.push_back(FORMULA);
+                case TOK_AND:
+                    parsing.push_back(TOK_RPAR);
+                    parsing.push_back(TOK_AND);
+                    parsing.push_back(TOK_FORMULA);
+                    parsing.push_back(TOK_FORMULA);
                 break;
-                case OR:
-                    parsing.push_back(RPAR);
-                    parsing.push_back(OR);
-                    parsing.push_back(FORMULA);
-                    parsing.push_back(FORMULA);
+                case TOK_OR:
+                    parsing.push_back(TOK_RPAR);
+                    parsing.push_back(TOK_OR);
+                    parsing.push_back(TOK_FORMULA);
+                    parsing.push_back(TOK_FORMULA);
                 break;
-                case NOT:
-                    parsing.push_back(RPAR);
-                    parsing.push_back(NOT);
-                    parsing.push_back(VAR);
+                case TOK_NOT:
+                    parsing.push_back(TOK_RPAR);
+                    parsing.push_back(TOK_NOT);
+                    parsing.push_back(TOK_VAR);
                 break;
                 default:
                     std::cerr << "expected either `and', `or', or `not'; instead: " << translate(token) << std::endl;
                     exit(1);
                 break;
             }
-        } else if (token == VAR) {
+        } else if (token == TOK_VAR) {
             values.push_back(get_name(yylval));
         } else {
             std::cerr << "expected a formula; instead: " << translate(token) << std::endl;
@@ -117,23 +125,24 @@ public:
     void parse()
     {
         while (!parsing.empty()) {
+        std::cerr << "now\n";
             auto goal = parsing.back();
             parsing.pop_back();
             switch (goal) {
-                case FORMULA:
+                case TOK_FORMULA:
                     parse_formula();
                 break;
-                case VAR:
+                case TOK_VAR:
                     parse_variable();
                 break;
-                case NOT:
+                case TOK_NOT:
                 {
                     auto var = values.back();
                     values.pop_back();
                     values.push_back(-var);
                 }
                 break;
-                case AND:
+                case TOK_AND:
                 {
                     auto left = values.back();
                     values.pop_back();
@@ -146,7 +155,7 @@ public:
                     cnf.push_back({-var_counter, right});
                 }
                 break;
-                case OR:
+                case TOK_OR:
                 {
                     auto left = values.back();
                     values.pop_back();
@@ -159,13 +168,14 @@ public:
                     cnf.push_back({-var_counter, left, right});
                 }
                 break;
-                case RPAR:
+                case TOK_RPAR:
                 {
                     auto token = scanner.yylex();
-                    if (token != RPAR) {
+                    if (token != TOK_RPAR) {
                         std::cerr << "expected a right parenthesis; instead: " << translate(token) << std::endl;
                         exit(1);
                     }
+                    std::cerr << parsing.empty() << ", first is " << translate(parsing[0]) << std::endl;
                 }
                 break;
                 default:
