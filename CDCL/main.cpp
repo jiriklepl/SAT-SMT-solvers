@@ -38,8 +38,6 @@ struct iterator_impl {
 
     constexpr auto operator<=>(const iterator_impl&) const noexcept = default;
     iterator_impl &operator++() noexcept { ++where; return *this; }
-    iterator_impl &operator--() noexcept { --where; return *this; }
-    iterator_impl operator--(int) noexcept { auto tmp = *this; --where; return tmp; }
     constexpr iterator_impl operator+(std::size_t i) const noexcept { return iterator_impl(where + i); }
     constexpr std::ptrdiff_t operator-(const iterator_impl &it) const noexcept { return (std::ptrdiff_t)(where - it.where); }
     V &operator*() noexcept { return *where; }
@@ -48,16 +46,15 @@ private:
     constexpr iterator_impl(V *where) noexcept : where(where) {}
 };
 
-template<>
-class Clause<nowatch_tag> {
+class memory_handle {
 public:
-    Clause() noexcept = default;
-    Clause(lit_t *start, lit_t *end) : start_(start), end_(end) {
+    memory_handle() noexcept = default;
+    memory_handle(lit_t *start, lit_t *end) : start_(start), end_(end) {
         assert(end >= start);
     }
 
-    using iterator = iterator_impl<Clause, lit_t>;
-    using const_iterator = iterator_impl<Clause, const lit_t>;
+    using iterator = iterator_impl<memory_handle, lit_t>;
+    using const_iterator = iterator_impl<memory_handle, const lit_t>;
 
     constexpr iterator begin() noexcept { return iterator(start_); }
     constexpr iterator end() noexcept { return iterator(end_); }
@@ -107,6 +104,19 @@ private:
 };
 
 template<>
+class Clause<nowatch_tag> : public memory_handle {
+public:
+    Clause() noexcept = default;
+    Clause(lit_t *start, lit_t *end) : memory_handle(start, end) {}
+};
+
+class Adjacency : public memory_handle {
+public:
+    Adjacency() noexcept = default;
+    Adjacency(lit_t *start, lit_t *end) : memory_handle(start, end) {}
+};
+
+template<>
 class Cnf<nowatch_tag> {
 public:
     std::vector<Clause<nowatch_tag>*> units;
@@ -131,7 +141,7 @@ struct Assignment {
 };
 
 struct AdjacencyList {
-    std::vector<Clause<nowatch_tag>> adjacency;
+    std::vector<Adjacency> adjacency;
     std::vector<lit_t> adjacency_data;
 };
 
@@ -140,7 +150,7 @@ struct WatchedList {
 };
 
 template<>
-class Solver<dpll_tag> {
+class Solver<nowatch_tag> {
 public:
     Cnf<nowatch_tag> cnf;
     Assignment assign;
@@ -152,11 +162,10 @@ public:
                     auto &&clause = cnf.clauses[a];
                     clause.remove(clause.find(variable));
                     for (auto &&l : clause) {
-                        if (l > 0) {
+                        if (l > 0)
                             adj.adjacency[l].remove(adj.adjacency[l].find(a));
-                        } else {
+                        else
                             adj.adjacency[-l].remove(adj.adjacency[-l].find(-a));
-                        }
                     }
                 } else {
                     auto &&clause = cnf.clauses[-a];
@@ -176,11 +185,10 @@ public:
                     auto &&clause = cnf.clauses[-a];
                     clause.remove(clause.find(-variable));
                     for (auto &&l : clause) {
-                        if (l > 0) {
+                        if (l > 0)
                             adj.adjacency[l].remove(adj.adjacency[l].find(-a));
-                        } else {
+                        else
                             adj.adjacency[-l].remove(adj.adjacency[-l].find(a));
-                        }
                     }
                 }
             }
@@ -376,7 +384,7 @@ public:
 
 int main(int argc, const char *argv[])
 {
-    Solver<dpll_tag> solver;
+    Solver<nowatch_tag> solver;
 
     {
         std::unique_ptr<dimacs_parser> parser;
