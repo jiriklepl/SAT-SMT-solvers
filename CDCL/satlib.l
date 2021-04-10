@@ -89,7 +89,6 @@ public:
 
     void parse_formula() {
         int token = scanner.yylex();
-        std::cerr << "now\n";
         if (token == TOK_LPAR) {
             token = scanner.yylex();
             switch (token) {
@@ -125,7 +124,6 @@ public:
     void parse()
     {
         while (!parsing.empty()) {
-        std::cerr << "now\n";
             auto goal = parsing.back();
             parsing.pop_back();
             switch (goal) {
@@ -175,7 +173,6 @@ public:
                         std::cerr << "expected a right parenthesis; instead: " << translate(token) << std::endl;
                         exit(1);
                     }
-                    std::cerr << parsing.empty() << ", first is " << translate(parsing[0]) << std::endl;
                 }
                 break;
                 default:
