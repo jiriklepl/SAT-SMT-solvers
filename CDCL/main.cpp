@@ -218,7 +218,7 @@ public:
             assert(var != 0);
             auto &&val = assign.variables[var];
             if (std::abs(val) == d)
-                return;
+                break;
 
             if (val != 0)
                 restore(var);
@@ -231,12 +231,12 @@ public:
     }
 
     bool unit_propag(lit_t d) {
-        for (;!cnf.units.empty();) {
-            Clause<nowatch_tag> *clause = cnf.units.back();
+        for (;!cnf.contra && !cnf.units.empty();) {
+            auto clause = *cnf.units.back();
             cnf.units.pop_back();
-            if (clause->is_empty())
+            if (clause.is_empty())
                 continue;
-            auto l = *clause->begin();
+            auto l = *clause.begin();
 
             if (l > 0) {
                 assign.assigned.push_back(l);
@@ -249,24 +249,20 @@ public:
                 assign.variables[-l] = -d;
                 update(-l, false);
             }
-
-            if (cnf.contra)
-                return false;
         }
 
-        return true;
+        return !cnf.contra;
     }
 
     bool solve(std::size_t d) {
-        if (!unit_propag(d)) {
-            cnf.units.clear();
-            cnf.contra = false;
+        if (!unit_propag(d))
             return false;
-        }
 
-        if (assign.unassigned.empty()) {
-            return !cnf.contra;
-        }
+        assert(!cnf.contra);
+        assert(cnf.units.empty());
+
+        if (assign.unassigned.empty())
+            return true;
 
         auto var = assign.unassigned.begin();
         auto val = *var;
@@ -285,13 +281,14 @@ public:
             assign.assigned.push_back(val);
             assign.variables[val] = d + 1;
             update(val, true);
+
             if (solve(d + 1)) {
                 return true;
             } else {
                 rollback(d);
-                if (score[1] > 0) {
-                    assign.unassigned.erase(assign.unassigned.find(val));
-                }
+
+                if (score[1] > 0)
+                    assign.unassigned.erase(val);
             }
         }
 
@@ -299,11 +296,9 @@ public:
             assign.assigned.push_back(val);
             assign.variables[val] = -(d + 1);
             update(val, false);
-            if (solve(d + 1)) {
+
+            if (solve(d + 1))
                 return true;
-            } else {
-                rollback(d);
-            }
         }
 
         return false;
