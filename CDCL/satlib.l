@@ -46,6 +46,8 @@ public:
     Context(std::istream &in) :
         scanner(&in), parsing{FORMULA}, values() { }
 
+    ~Context() noexcept override = default;
+
     lit_t get_name(std::string &variable) {
         auto [it, is_new] = names.try_emplace(variable, var_counter + 1);
 
@@ -114,9 +116,7 @@ public:
     }
     void parse()
     {
-        while (!parsing.empty())
-        {
-
+        while (!parsing.empty()) {
             auto goal = parsing.back();
             parsing.pop_back();
             switch (goal) {
@@ -140,7 +140,7 @@ public:
                     auto right = values.back();
                     values.pop_back();
                     values.push_back(++var_counter);
-                    
+
                     cnf.push_back({-left,-right,var_counter});
                     cnf.push_back({-var_counter, left});
                     cnf.push_back({-var_counter, right});
@@ -153,7 +153,7 @@ public:
                     auto right = values.back();
                     values.pop_back();
                     values.push_back(++var_counter);
-                    
+
                     cnf.push_back({-left,var_counter});
                     cnf.push_back({-right,var_counter});
                     cnf.push_back({-var_counter, left, right});
@@ -168,6 +168,8 @@ public:
                     }
                 }
                 break;
+                default:
+                    assert(((void)"Control flow corruption", 0));
             }
         }
 
