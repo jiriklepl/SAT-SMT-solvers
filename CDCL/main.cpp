@@ -150,13 +150,13 @@ public:
                     for (auto &&l : clause) {
                         if (l > 0) {
                           #if (DEBUG || !NDEBUG)
-                            std::size_t n = 
+                            std::size_t n =
                           #endif
                             adj.adjacency[l].erase(a);
                             assert(n == 1);
                         } else {
                           #if (DEBUG || !NDEBUG)
-                            std::size_t n = 
+                            std::size_t n =
                           #endif
                             adj.adjacency[-l].erase(-a);
                             assert(n == 1);
@@ -182,13 +182,13 @@ public:
                     for (auto &&l : clause) {
                         if (l > 0) {
                           #if (DEBUG || !NDEBUG)
-                            std::size_t n = 
+                            std::size_t n =
                           #endif
                             adj.adjacency[l].erase(-a);
                             assert(n == 1);
                         } else {
                           #if (DEBUG || !NDEBUG)
-                            std::size_t n = 
+                            std::size_t n =
                           #endif
                             adj.adjacency[-l].erase(a);
                             assert(n == 1);
