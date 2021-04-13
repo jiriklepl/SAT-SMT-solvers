@@ -17,7 +17,7 @@ library
   exposed-modules:    DIMACS
   -- other-modules:
   -- other-extensions:
-  build-depends:       base ^>=4.13.0.0,
+  build-depends:       base >=4.13.0.0,
                        megaparsec ^>=9.0.1,
                        text ^>=1.2.4.0,
                        mtl ^>=2.2.2,
