@@ -48,6 +48,8 @@ ID          [a-zA-Z][a-zA-Z0-9]*
 
 %%
 
+namespace {
+
 class Context : public satlib_parser {
 public:
     Context(std::istream &in) :
@@ -189,6 +191,8 @@ private:
     std::vector<Token> parsing;
     std::vector<lit_t> values;
 };
+
+}
 
 std::unique_ptr<satlib_parser> satlib_parse(std::istream &in) {
     auto context = std::make_unique<Context>(in);

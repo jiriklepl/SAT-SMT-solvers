@@ -29,7 +29,7 @@ CLAUSE_END   0
 
 %%
 
-c[^\n]       /* eat comments */
+c[^\n]*      /* eat comments */
 "p cnf"      { return TOK_HEAD; }
 p" "?c?n?    { return TOK_BAD_HEAD; }
 
@@ -43,6 +43,8 @@ p" "?c?n?    { return TOK_BAD_HEAD; }
 .            { std::cerr << "unrecognized character: " << yytext << '\n'; }
 
 %%
+
+namespace {
 
 class Context : public dimacs_parser {
 public:
@@ -125,6 +127,8 @@ private:
     yyFlexLexer scanner;
     std::vector<lit_t> lits;
 };
+
+}
 
 std::unique_ptr<dimacs_parser> dimacs_parse(std::istream &in) {
     auto context = std::make_unique<Context>(in);
