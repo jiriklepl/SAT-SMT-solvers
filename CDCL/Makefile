@@ -1,6 +1,6 @@
 CXX := g++
 LEXPP := flex++
-CXXOPTS := -std=c++20 -Wall -Wextra -pedantic -DNDEBUG -O2 -march=native
+CXXOPTS := -std=c++20 -Wall -Wextra -pedantic -DNDEBUG -O2 -s -march=native
 INCLUDE := include
 BINDIR := bin
 BIN := main

@@ -25,10 +25,70 @@ template<typename> class Solver;
 
 template<>
 class Clause<watch_tag> {
+public:
+    Clause() noexcept = default;
+    Clause(lit_t *_start, lit_t *_end, std::vector<std::unordered_set<Clause*>> &watched_at) noexcept
+        : start(_start), end(_end), w1(_start), w2(_end - 1), satisfied(0) {
+            assert(start != nullptr);
+            assert(end != nullptr);
+            assert(w1 != w2);
+
+            watched_at[std::abs(*w1)].emplace(this);
+            watched_at[std::abs(*w2)].emplace(this);
+        }
+    bool update(const std::vector<lit_t> &variables, std::vector<std::unordered_set<Clause*>> &watched_at, lit_t variable) {
+        auto tmp = w2;
+        while (true) {
+            ++w2;
+            if (w2 == end) w2 = start;
+            if (w2 == tmp) break;
+            else if (variables[std::abs(*w2)] == 0) {
+                if (w2 == w1) {
+                    continue;
+                } else {
+                    assert(variables[std::abs(*w1)] == 0);
+                    watched_at[variable].erase(this);
+                    watched_at[std::abs(*w2)].emplace(this);
+                    break;
+                }
+            } else if (variables[std::abs(*w2)] * *w2 > 0) {
+                w2 = tmp;
+                return true;
+            }
+        }
+
+        assert(w1 != w2);
+        assert(watched_at[std::abs(*w1)].find(this) != watched_at[std::abs(*w1)].end());
+        assert(watched_at[std::abs(*w2)].find(this) != watched_at[std::abs(*w2)].end());
+        assert((variables[std::abs(*w1)] == 0) || (variables[std::abs(*w2)] != 0));
+
+        return false;
+    }
+
+    lit_t get_watch() const { return *w1; }
+    lit_t snd_watch() const { return *w2; }
+    void assure_watch(lit_t variable) { 
+        if (std::abs(*w2) != variable)
+            std::swap(w1, w2);
+        assert(std::abs(*w2) == variable);
+    }
+    bool is_unit(const std::vector<lit_t> &variables) const {
+        return variables[std::abs(*w1)] == 0 && variables[std::abs(*w2)] != 0;
+    }
+    bool is_empty(const std::vector<lit_t> &variables) const {
+        if (variables[std::abs(*w1)] != 0) {
+            assert(variables[std::abs(*w2)] != 0);
+            return true;
+        }
+        return false;
+    }
+private:
     lit_t* start;
     lit_t* end;
     lit_t* w1;
     lit_t* w2;
+public:
+    lit_t satisfied;
 };
 
 template<typename parent, typename V>
@@ -125,6 +185,16 @@ public:
     bool contra;
 };
 
+template<>
+class Cnf<watch_tag> {
+public:
+    std::vector<Clause<watch_tag>*> units;
+    std::vector<Clause<watch_tag>*> satisfied;
+    std::vector<Clause<watch_tag>> clauses;
+    std::vector<lit_t> literals;
+    bool contra;
+};
+
 struct Assignment {
     /* list of variable assignments
      * 0 = unassigned or free
@@ -146,7 +216,153 @@ struct AdjacencyList {
 };
 
 struct WatchedList {
-    std::vector<std::vector<std::size_t>> watched_at;
+    std::vector<std::unordered_set<Clause<watch_tag>*>> watched_at;
+};
+
+template<>
+class Solver<watch_tag> {
+public:
+    Cnf<watch_tag> cnf;
+    Assignment assign;
+    WatchedList wch;
+    bool unit_propag(lit_t d) {
+        for (;!cnf.contra && !cnf.units.empty();) {
+            auto clause = *cnf.units.back();
+            cnf.units.pop_back();
+            if (clause.satisfied > 0)
+                continue;
+            auto l = clause.get_watch();
+
+            assert(l != 0);
+
+            if (l > 0) {
+                update(l, d, true);
+            } else {
+                update(-l, d, false);
+            }
+        }
+
+        return !cnf.contra;
+    }
+
+    void update(lit_t variable, lit_t d, bool is_true) {
+        assign.assigned.push_back(variable);
+        assign.unassigned.erase(variable);
+        assign.variables[variable] = is_true ? d : -d;
+        auto copy = wch.watched_at[variable];
+        for (auto &&clause : copy) {
+            if (clause->satisfied > 0)
+                continue;
+            clause->assure_watch(variable);
+            bool pos = (clause->snd_watch() > 0) ? is_true : !is_true;
+
+            if (pos || clause->update(assign.variables, wch.watched_at, variable)) {
+                assert(clause->satisfied == 0);
+                cnf.satisfied.push_back(clause);
+                clause->satisfied = d;
+                continue;
+            }
+            if (clause->is_unit(assign.variables))
+                cnf.units.emplace_back(clause);
+            else if (clause->is_empty(assign.variables)) {
+                cnf.contra = true;
+                break;
+            }
+        }
+    }
+
+    bool solve(lit_t d) {
+        if (!unit_propag(d)) {
+            return false;
+        }
+
+        if (assign.unassigned.empty())
+            return true;
+
+        auto var = assign.unassigned.begin();
+        auto val = *var;
+
+        update(val, d + 1, true);
+
+        if (solve(d + 1))
+            return true;
+        else rollback(d);
+
+        update(val, d + 1, false);
+
+        if (solve(d + 1))
+            return true;
+        else rollback(d);
+
+        return false;
+    }
+
+    void rollback(std::size_t d) {
+        for (; !assign.assigned.empty(); assign.assigned.pop_back()) {
+            auto var = assign.assigned.back();
+            assert(var != 0);
+            auto &&val = assign.variables[var];
+            assert(val != 0);
+            if (std::abs(val) <= d)
+                break;
+
+            val = 0;
+            assign.unassigned.emplace(var);
+        }
+
+        for (; !cnf.satisfied.empty(); cnf.satisfied.pop_back()) {
+            auto var = cnf.satisfied.back();
+            assert(var != nullptr);
+            auto &&val = var->satisfied;
+            assert(val != 0);
+            if (std::abs(val) <= d)
+                break;
+
+            val = 0;
+        }
+
+        cnf.units.clear();
+        cnf.contra = false;
+    }
+
+    void set(std::vector<std::vector<lit_t>> &list) {
+        assign.assigned. clear();
+        assign.unassigned.clear();
+        assign.variables.clear();
+        wch.watched_at.clear();
+        cnf.contra = false;
+        std::size_t total_size = 0;
+
+        for (auto &&c : list) {
+            total_size += c.size();
+        }
+
+        cnf.literals.resize(total_size);
+        cnf.clauses.resize(list.size() + 1);
+
+        std::size_t l_counter = 0;
+        std::size_t c_counter = 0;
+        for (auto &&c : list) {
+            std::size_t clause_begin = l_counter;
+            ++c_counter;
+
+            for (auto &&l : c) {
+                cnf.literals[l_counter++] = l;
+                std::size_t var = (l > 0) ? l : -l;
+                if (var >= wch.watched_at.size()) {
+                    wch.watched_at.resize(2 * var);
+                    assign.variables.resize(2 * var);
+                }
+
+                assign.unassigned.emplace(var);
+            }
+
+            new (cnf.clauses.data() + c_counter) Clause<watch_tag>(cnf.literals.data() + clause_begin, cnf.literals.data() + l_counter, wch.watched_at);
+
+            if (clause_begin == l_counter)
+                exit(20);
+        }
+    }
 };
 
 template<>
@@ -379,7 +595,7 @@ public:
 
 int main(int argc, const char *argv[])
 {
-    Solver<nowatch_tag> solver;
+    Solver<watch_tag> solver;
 
     {
         std::unique_ptr<dimacs_parser> parser;
