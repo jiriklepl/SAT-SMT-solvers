@@ -40,19 +40,22 @@ $$\varphi_r = \{C \in \varphi | C \cap \{x, \neg x\} = \emptyset\}$$
 Namely, $\varphi_0$ consists of the clauses containing negative literal $\neg x$, $\varphi_1$ consists of the clauses containing
 positive literal $x$, $\varphi_r$ contains the rest of the clauses. Let us now define
 $$\varphi_{dp} = \{Res(C_0, C_1) | C_0 \in \varphi_0, C_1 \in \varphi_1\}$$
-where $Res(C_0, C_1)$ denotes the clauses originating from $C_0$ and $C_1$ by resolution. Show that $\varphi$ is equisatisfiable with $\varphi_0 = \varphi_r \wedge \varphi_{dp}$.
+where $Res(C_0, C_1)$ denotes the clauses originating from $C_0$ and $C_1$ by resolution. Show that $\varphi$ is equisatisfiable with $\varphi' = \varphi_r \wedge \varphi_{dp}$.
 \end{quote}
 
 First, we define: $\varphi_0' = \{C \setminus \{\neg x\} | C \in \varphi_0\}, \varphi_1' = \{C \setminus \{x\} | C \in \varphi_1\}$ \\
 It follows that: $\varphi_0 \equiv \{x \to C  | C \in \varphi_0'\}, \varphi_1 \equiv \{\neg x \to C | C \in \varphi_1'\}$ $\quad \left(1\right)$\\
 and from that: $\varphi_0 \equiv x \to \{C  | C \in \varphi_0'\}, \varphi_1 \equiv \neg x \to \{C  | C \in \varphi_1'\}$ \\
 and $\varphi_0 \wedge \varphi_1 \equiv x \to \{C  | C \in \varphi_0'\} \wedge \neg x \to \{C  | C \in \varphi_1'\}$
-and (since those are the only two occurences of variable $x$):
-$$\varphi_0 \wedge \varphi_1 \equiv_{SAT} \{C  | C \in \varphi_0'\} \vee \{C  | C \in \varphi_1'\}$$
-From distributivity of $\wedge$ and $\vee$ and the previous: $\varphi_0 \wedge \varphi_1 \equiv_{SAT} \{C_0 \vee C_1 | C_0 \in \varphi_0', C_1 \in \varphi_1'\}$
+and (using existence quantifier to denote capturing of variable $x$):
+$$\exists_x (\varphi_0 \wedge \varphi_1) \equiv \{C  | C \in \varphi_0'\} \vee \{C  | C \in \varphi_1'\}$$
+From distributivity of $\wedge$ and $\vee$ and the previous: $\exists_x (\varphi_0 \wedge \varphi_1) \equiv \{C_0 \vee C_1 | C_0 \in \varphi_0', C_1 \in \varphi_1'\}$
 
-We can finalize this as follows: $$\varphi_0 \wedge \varphi_1 \equiv_{SAT} \{C_0 \vee C_1 | C_0 \in \varphi_0', C_1 \in \varphi_1'\} \overset{Def}{=} \{Res(\{\neg x\} \cup C_0, \{x\} \cup C_1) | C_0 \in \varphi_0', C_1 \in \varphi_1'\} \overset{\left(1\right)}{=} $$
-$$\{Res(C_0, C_1) | C_0 \in \varphi_0, C_1 \in \varphi_1\} = \varphi_{dp}$$
+We can finalize this as follows: $$\exists_x (\varphi_0 \wedge \varphi_1) \equiv \{C_0 \vee C_1 | C_0 \in \varphi_0', C_1 \in \varphi_1'\} \overset{Def}{\equiv} \exists_x (\{Res(\{\neg x\} \cup C_0, \{x\} \cup C_1) | C_0 \in \varphi_0', C_1 \in \varphi_1'\})$$
+$$\overset{\left(1\right)}{=} \exists_x (\{Res(C_0, C_1) | C_0 \in \varphi_0, C_1 \in \varphi_1\}) = \exists_x (\varphi_{dp})$$
 
+And, since: $\exists_x(\varphi_0 \wedge \varphi_1) \equiv \exists_x(\varphi_{dp})$, it holds that: $\exists_x(\varphi) = \exists_x(\varphi_0 \wedge \varphi_1 \wedge \varphi_r) \overset{x \not\in var(\varphi_r)}{\equiv} \exists_x(\varphi_0 \wedge \varphi_1) \wedge \varphi_r \equiv \exists_x (\varphi_{dp}) \wedge \varphi_r \overset{x \not\in var(\varphi_r)}{\equiv} \exists_x (\varphi_{dp} \wedge \varphi_r) = \exists_x (\varphi')$
+
+And thus: $$\varphi \equiv_{SAT} \varphi'$$
 
 \end{document}

@@ -38,17 +38,17 @@ tautology (i.e. there is another literal $l_D \in D$ such that $\neg l_D \in C$)
 $\varphi \setminus \{C\}$, i.e. $\varphi$ is satisfiable if and only if $\varphi \setminus \{C\}$ is satisfiable.
 \end{quote}
 
-We can rewrite $\varphi$ to $C \wedge \varphi_D \wedge \varphi_r$ where $\varphi_D$ contains the clauses $D$ and $\varphi_r$ the clauses of $\varphi$ that don't contain neither $l$ nor $\neg l$.
+We can rewrite $\varphi$ into $C \wedge \varphi_l \wedge \varphi_{\neg l} \wedge \varphi_r$ where $\varphi_{l}$ contains the clauses other than $C$ that contain $l$; $\varphi_{\neg l}$ contains the clauses that contain $\neg l$; and $\varphi_r$ contains the clauses of $\varphi$ that don't contain neither $l$ nor $\neg l$.
 
 
-It holds that $C \wedge \varphi_D \wedge \varphi_r \equiv (\neg l \to C') \wedge (l \to \varphi_D') \wedge \varphi_r$ where $C'$ is the clause $C$ after removing the literal $l$ and $\varphi_D'$ consist of the clauses $D$ after removing the literal $\neg l$.
+It holds that: $C \wedge \varphi_l \wedge \varphi_{\neg l} \wedge \varphi_r \equiv (\neg l \to (C' \wedge \varphi_l')) \wedge (l \to \varphi_{\neg l}') \wedge \varphi_r$ where $C'$ is the clause $C$ after removing the literal $l$; and $\varphi_l'$ consist of the clauses in $\varphi_l$ after removing the literal $l$; and, similarly, $\varphi_{\neg l}'$ contains the clauses from $\varphi_{\neg l}$ after removing $\neg l$ from each.
 
-And then, since neither of $C'$, $\varphi_D'$, nor $\varphi_r$ contain either of the literals $l$ and $\neg l$, it holds that $(\neg l \to C') \wedge (l \to \varphi_D') \wedge \varphi_r \equiv_{SAT} (C' \vee \varphi_D') \wedge \varphi_r$.
+And then, since neither of $C'$, $\varphi_l'$, $\varphi_{\neg l}'$, nor $\varphi_r$ contain either of the literals $l$ and $\neg l$, it holds that: $(\neg l \to (C' \wedge \varphi_l')) \wedge (l \to \varphi_{\neg l}') \wedge \varphi_r \equiv_{SAT} ((C' \wedge \varphi_l') \vee \varphi_{\neg l}') \wedge \varphi_r$.
 
-Then, from distributivity of $\vee$ and $\wedge$, we get $(C' \vee \varphi_D') \wedge \varphi_r \equiv (\bigwedge \{C' \vee D' | D' \in \varphi_D'\}) \wedge \varphi_r = (\bigwedge \{Res_l(C \vee D) | D \in \varphi_D\}) \wedge \varphi_r$ (the equality follows the definition of $C'$ and $\varphi_D'$ from $C$ and $\varphi_D$).
+Then, from distributivity of $\vee$ and $\wedge$, we get: $((C' \wedge \varphi_l') \vee \varphi_{\neg l}') \wedge \varphi_r \equiv \bigwedge_{D' \in \varphi_{\neg l}} (C' \vee D') \wedge \bigwedge_{D' \in \varphi_{\neg l}'}(\varphi_l' \vee D') \wedge \varphi_r = \bigwedge_{D \in \varphi_{\neg l}} Res_l(C, D) \wedge \bigwedge_{D' \in \varphi_{\neg l}'}(\varphi_l' \vee D') \wedge \varphi_r \equiv \bigwedge_{D \in \varphi_{\neg l}} Res_l(C, D) \wedge (\varphi_l' \vee \varphi_{\neg l}') \wedge \varphi_r$; the equality follows the definition of $C'$ and $\varphi_{\neg l}'$ from $C$ and $\varphi_{\neg l}$; and the second  equivalence, again, from distributivity of $\vee$ and $\wedge$.
 
-The assignment declares that $Res_l(C, D)$ is a tautology for every $D \in \varphi_D$, and thus $(\bigwedge \{Res_l(C \vee D) | D \in \varphi_D\}) \wedge \varphi_r \equiv \varphi_r$.
+The assignment states that $Res_l(C, D)$ is a tautology for every $D \in \varphi_{\neg l}$, and thus: $\bigwedge_{D \in \varphi_{\neg l}} Res_l(C, D) \wedge (\varphi_l' \vee \varphi_{\neg l}') \wedge \varphi_r \equiv_{SAT} (\varphi_l' \vee \varphi_{\neg l}') \wedge \varphi_r \equiv_{SAT} (\neg l \to \varphi_l') \wedge (l \to \varphi_{\neg l}') \wedge \varphi_r \equiv \varphi_l \wedge \varphi_{\neg l} \wedge \varphi_r = \varphi \setminus \{C\}$.
 
-And, since we proved that $\varphi = C \wedge \varphi_D \wedge \varphi_r \equiv_{SAT} \varphi_r$, it follows that $\varphi \equiv_{SAT} \varphi \setminus \{C\} = \varphi_D \wedge \varphi_r$, otherwise $\varphi$ and $\varphi_r$ wouldn't be equivalent.
+And thus: $$\varphi \equiv_{SAT} \varphi \setminus \{C\}$$
 
 \end{document}
