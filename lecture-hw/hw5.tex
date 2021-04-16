@@ -1,0 +1,55 @@
+\documentclass[a4paper,12pt]{article} % This defines the style of your paper
+
+\usepackage[top = 2.5cm, bottom = 2.5cm, left = 2.5cm, right = 2.5cm]{geometry} 
+
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}
+
+\usepackage{multirow} % Multirow is for tables with multiple rows within one cell.
+\usepackage{booktabs} % For even nicer tables.
+
+\usepackage{amsmath} 
+\usepackage{graphicx}
+
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+
+
+\newtheorem{definition}{Definition}
+\newtheorem{observation}{Observation}[definition]
+
+\usepackage{setspace}
+\setlength{\parindent}{0in}
+\setlength{\parskip}{.5em}
+
+\begin{document}
+
+\begin{center}
+    {\Large \bf Homework 5}
+    \vspace{2mm}
+
+    {\bf Jiří Klepl}
+
+\end{center}
+
+\vspace{0.4cm}
+
+The algorithm will be defined as (stopping at the bottom case):
+
+$B^f \bigodot B^g = (1 - x)(B^f|_{x = 0} \bigodot B^g|_{x = 0}) + x(B^f|_{x = 1} \bigodot B^g|_{x = 1})\\
+\text{where } x = min(var(B^f), var(B^g))$
+
+
+For the demonstration, we will assume that $\bigodot$ takes the lowest priority (sticks the least)
+
+$f \bigodot g: \\
+(1 - x_1)(-x_2 \bigodot (\text{if } x_2 \text{ then } 4x_1 \text{ else } x_3+1)) + x_1(2x_2 + 1 \bigodot (\text{if } x_2 \text{ then } 4x_1 \text{ else } x_3+1)) = \\
+(1 - x_1)((1 - x_2) (-0 \bigodot x_3 + 1) + x_2(-1 \bigodot 0)) + x_1((1-x_2) (1 \bigodot x_3+1) + x_2(3 \bigodot 4) = \\
+(1 - x_1)((1 - x_2) ((1-x_3) (0 \bigodot 1) + x_3 (0 \bigodot 2)) + x_2(-1 \bigodot 0)) + x_1((1-x_2) ((1 - x_3) (1 \bigodot 1) + x_3 (1 \bigodot 2)) + x_2(3 \bigodot 4))$
+
+Written as MTBDD:
+
+\includegraphics{"graph.pdf"}
+
+\end{document}
