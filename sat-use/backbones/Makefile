@@ -7,8 +7,8 @@ BIN := minibones lglbones
 
 all: minibones lglbones
 
-minibones: minibones.cpp
-	$(CXX) $(CXXOPTS) $^ -o $@ $(patsubst %,-l%,$(MINILIBS))
+minibones: minibones.cpp main.hpp
+	$(CXX) $(CXXOPTS) $< -o $@ $(patsubst %,-l%,$(MINILIBS))
 
-lglbones: lglbones.cpp
-	$(CXX) $(CXXOPTS) $^ -o $@ $(patsubst %,-l%,$(LGLLIBS))
+lglbones: lglbones.cpp main.hpp
+	$(CXX) $(CXXOPTS) $< -o $@ $(patsubst %,-l%,$(LGLLIBS))

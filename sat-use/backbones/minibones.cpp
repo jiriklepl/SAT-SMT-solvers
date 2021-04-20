@@ -1,13 +1,19 @@
 #include <iostream>
 
+
 #include <minisat/core/Solver.h>
 #include <minisat/core/Dimacs.h>
 
+#include "main.hpp"
+
 using namespace Minisat;
 
-int main(int argc, char *argv[])
+Solver solver;
+
+namespace {
+
+void init(int argc, char *argv[])
 {
-    Solver solver;
 
     if (argc == 1)
         printf("Reading from standard input... Use '--help' for help.\n");
@@ -19,64 +25,52 @@ int main(int argc, char *argv[])
 
     parse_DIMACS(in, solver);
     gzclose(in);
+}
 
-    if (!solver.solve()) {
-        std::cout << "no backbones" << std::endl;
+int run()
+{
+    int called = 1;
 
-        return 20;
-    }
+    if (!solver.solve())
+        return 0;
 
-    enum suspicion : std::uint8_t {
-        TRUE,
-        FALSE,
-        UNSUS
-    };
-
-    vec<suspicion> suspected;
     vec<Lit> block;
 
-    suspected.capacity(solver.model.size());
+    suspected.resize(solver.model.size() + 1);
     block.capacity(solver.model.size());
 
     for (int i = 0; i < solver.model.size(); ++i) {
         if (solver.model[i] == l_True)
-            suspected.push_(TRUE),
+            suspected[i + 1] = TRUE,
             block.push_(mkLit(i, true));
         else if (solver.model[i] == l_False)
-            suspected.push_(FALSE),
+            suspected[i + 1] = FALSE,
             block.push_(mkLit(i, false));
         else
-            suspected.push_(UNSUS);
+            suspected[i + 1] = UNSUS;
     }
 
     solver.addClause(block);
 
-    while (solver.solve()) {
+    while (++called, solver.solve()) {
         block.clear();
 
         for (int i = 0; i < solver.model.size(); ++i) {
-            if (suspected[i] == TRUE && solver.model[i] == l_True)
+            if (suspected[i + 1] == TRUE && solver.model[i] == l_True)
                 block.push_(mkLit(i, true));
-            else if (suspected[i] == FALSE && solver.model[i] == l_False)
+            else if (suspected[i + 1] == FALSE && solver.model[i] == l_False)
                 block.push_(mkLit(i, false));
             else
-                suspected[i] = UNSUS;
+                suspected[i + 1] = UNSUS;
         }
 
-        if (solver.model.size() < suspected.size())
-            suspected.shrink_(solver.model.size() - solver.model.size());
+        if ((std::size_t)solver.model.size() < suspected.size())
+            suspected.resize(solver.model.size() + 1);
 
         solver.addClause(block);
     }
 
-    std::cout << "backbones:" << std::endl;
+    return called;
+}
 
-    for (int i = 0; i < suspected.size(); ++i) {
-        if (suspected[i] == TRUE)
-            std::cout << '\t' << i << ": true" << std::endl;
-        else if (suspected[i] == FALSE)
-            std::cout << '\t' << i << ": false" << std::endl;
-    }
-
-    return 10;
 }

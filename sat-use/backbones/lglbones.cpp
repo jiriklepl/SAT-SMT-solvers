@@ -1,25 +1,31 @@
-#include <iostream>
-#include <cstddef>
 #include <cassert>
+#include <cstddef>
 #include <cstring>
+#include <iostream>
 #include <vector>
+
+extern "C" {
+
 #include <stdarg.h>
-
-extern "C"{
-
 #include <lgl/lglib.h>
 #include <lgl/lgldimacs.h>
 
 }
 
+#include "main.hpp"
 
-int main(int argc, char *argv[])
+namespace {
+
+LGL *lgl;
+int nvars;
+
+void init(int argc, char *argv[])
 {
     bool closeinputfile;
     const char *inputname = argc == 2 ? argv[1] : nullptr;
-    int lineno, nvars;
+    int lineno;
     FILE *inputfile;
-    LGL *lgl = lglinit();
+    lgl = lglinit();
 
 
     if (inputname) {
@@ -35,24 +41,17 @@ int main(int argc, char *argv[])
 
     if (closeinputfile)
         fclose(inputfile);
+}
+
+int run()
+{
+    int called = 1;
 
     for (int i = 1; i <= nvars; ++i)
         lglfreeze(lgl, i);
 
-
-    if (lglsat(lgl) != 10) {
-        std::cout << "no backbones" << std::endl;
-
-        return 20;
-    }
-
-    enum suspicion : std::uint8_t {
-        TRUE,
-        FALSE,
-        UNSUS
-    };
-
-    std::vector<suspicion> suspected;
+    if (lglsat(lgl) != 10)
+        return 0;
 
     suspected.resize(nvars + 1);
 
@@ -63,6 +62,7 @@ int main(int argc, char *argv[])
         else if (var < 0)
             suspected[i] = FALSE;
         else
+            lglmelt(lgl, i),
             suspected[i] = UNSUS;
     }
 
@@ -75,13 +75,13 @@ int main(int argc, char *argv[])
 
     lgladd(lgl, 0);
 
-    while (lglsat(lgl) == 10) {
+    while (++called, lglsat(lgl) == 10) {
 
         for (int i = 1; i <= nvars; ++i) {
             auto var = lglderef(lgl, i);
-            if (suspected[i] == TRUE && var > 0);
-            else if (suspected[i] == FALSE && var < 0);
-            else if (suspected[i] != UNSUS)
+
+            if (suspected[i] != UNSUS
+            && (suspected[i] == TRUE ? var <= 0 : var >= 0))
                 lglmelt(lgl, i),
                 suspected[i] = UNSUS;
         }
@@ -96,14 +96,7 @@ int main(int argc, char *argv[])
         lgladd(lgl, 0);
     }
 
-    std::cout << "backbones:" << std::endl;
+    return called;
+}
 
-    for (std::size_t i = 1; i < suspected.size(); ++i) {
-        if (suspected[i] == TRUE)
-            std::cout << '\t' << i << ": true" << std::endl;
-        else if (suspected[i] == FALSE)
-            std::cout << '\t' << i << ": false" << std::endl;
-    }
-
-    return 10;
 }
