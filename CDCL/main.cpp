@@ -57,9 +57,8 @@ public:
             assert(watched_list.watched_at[get_var(w2)][get_pos(w2)] == this);
         }
     bool update(const std::vector<lit_t> &variables, WatchedList &watched_list) noexcept {
-        if (variables[get_var(w1)] * get_lit(w1) > 0) {
+        if (variables[get_var(w1)] * get_lit(w1) > 0)
             return true;
-        }
 
         assert(variables[get_var(w2)] * get_lit(w2) < 0);
 
