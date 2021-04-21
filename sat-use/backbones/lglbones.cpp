@@ -7,8 +7,8 @@
 extern "C" {
 
 #include <stdarg.h>
-#include <lgl/lglib.h>
-#include <lgl/lgldimacs.h>
+#include <lingeling/lglib.h>
+#include <lingeling/lgldimacs.h>
 
 }
 
