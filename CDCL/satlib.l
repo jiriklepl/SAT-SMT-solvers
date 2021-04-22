@@ -52,8 +52,8 @@ namespace {
 
 class Context : public satlib_parser {
 public:
-    Context(std::istream &in) :
-        scanner(&in), parsing{TOK_FORMULA}, values() { }
+    Context(std::istream &in, bool just_impl = true) :
+        scanner(&in), parsing{TOK_FORMULA}, values(), just_impl(just_impl) { }
 
     ~Context() noexcept override = default;
 
@@ -132,42 +132,69 @@ public:
                 case TOK_FORMULA:
                     parse_formula();
                 break;
+
                 case TOK_VAR:
                     parse_variable();
                 break;
+
                 case TOK_NOT:
-                {
-                    auto var = values.back();
-                    values.pop_back();
-                    values.push_back(-var);
-                }
+                    values.back() = -values.back();
                 break;
+
                 case TOK_AND:
                 {
                     auto left = values.back();
                     values.pop_back();
                     auto right = values.back();
-                    values.pop_back();
-                    values.push_back(++var_counter);
 
-                    cnf.push_back({-left,-right,var_counter});
-                    cnf.push_back({-var_counter, left});
-                    cnf.push_back({-var_counter, right});
+                    if (left != right) {
+                        if (left == 0) {
+                            values.back() = right;
+                            break;
+                        } else if (right == 0) {
+                            values.back() = left;
+                            break;
+                        }
+
+                        values.back() = ++var_counter;
+
+                        if (!just_impl)
+                            /* (L /\ R) -> C */
+                            cnf.push_back({-left,-right,var_counter});
+
+                        /* C -> (L /\ R) */
+                        cnf.push_back({-var_counter, left});
+                        cnf.push_back({-var_counter, right});
+                    }
                 }
                 break;
+
                 case TOK_OR:
                 {
                     auto left = values.back();
                     values.pop_back();
                     auto right = values.back();
-                    values.pop_back();
-                    values.push_back(++var_counter);
 
-                    cnf.push_back({-left,var_counter});
-                    cnf.push_back({-right,var_counter});
-                    cnf.push_back({-var_counter, left, right});
+                    if (left != right) {
+                        if (left == -right || left == 0 || right == 0) {
+                            values.back() = 0;
+                            break;
+                        }
+
+                        values.back() = ++var_counter;
+
+                        if (!just_impl) {
+                            /* (L \/ R) -> C */
+                            cnf.push_back({-left,var_counter});
+                            cnf.push_back({-right,var_counter});
+                        }
+
+                        /* C -> (L \/ R) */
+                        cnf.push_back({-var_counter, left, right});
+                    }
                 }
                 break;
+
                 case TOK_RPAR:
                 {
                     auto token = scanner.yylex();
@@ -177,25 +204,31 @@ public:
                     }
                 }
                 break;
+
                 default:
                     assert(((void)"Control flow corruption", 0));
             }
         }
 
         assert(values.size() == 1);
-        cnf.push_back({values.back()});
+
+        if (values.back() != 0)
+            cnf.push_back({values.back()});
+        else
+            cnf.clear();
     }
 
 private:
     yyFlexLexer scanner;
     std::vector<Token> parsing;
     std::vector<lit_t> values;
+    bool just_impl;
 };
 
 }
 
-std::unique_ptr<satlib_parser> satlib_parse(std::istream &in) {
-    auto context = std::make_unique<Context>(in);
+std::unique_ptr<satlib_parser> satlib_parse(std::istream &in, bool just_impl) {
+    auto context = std::make_unique<Context>(in, just_impl);
     context->parse();
 
     return context;

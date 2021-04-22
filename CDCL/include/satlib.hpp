@@ -17,6 +17,13 @@ public:
 
 inline satlib_parser::~satlib_parser() = default;
 
-std::unique_ptr<satlib_parser> satlib_parse(std::istream &in);
+/**
+ * @brief Parses a satlib-format file given in an input stream
+ * 
+ * @param in the input stream
+ * @param just_impl use only top-down implications ("gate implies literals/sub-gates")
+ * @return std::unique_ptr<satlib_parser> containing the parsed cnf and a map of names
+ */
+std::unique_ptr<satlib_parser> satlib_parse(std::istream &in, bool just_impl = true);
 
 #endif // SATLIB_HPP
