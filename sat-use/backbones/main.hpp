@@ -41,7 +41,14 @@ int main(int argc, char *argv[])
 
         return 20;
     }
-    std::cout << suspected.size() - 1 << " backbones. (after " << result << " calls)" << std::endl;
+
+    std::size_t count = 0;
+
+    for (auto it = suspected.begin() + 1; it != suspected.end(); ++it)
+        if (*it != UNSUS)
+            ++count;
+
+    std::cout << count << " backbones. (after " << result << " calls)" << std::endl;
 
     for (std::size_t i = 1; i < suspected.size(); ++i) {
         if (suspected[i] == TRUE)
