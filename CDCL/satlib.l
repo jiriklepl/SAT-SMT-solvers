@@ -7,6 +7,8 @@
 
 static std::string yylval;
 
+namespace {
+
 enum Token {
     TOK_FORMULA,
     TOK_AND,
@@ -17,6 +19,8 @@ enum Token {
     TOK_VAR,
     TOK_EOF
 };
+
+}
 
 %}
 
@@ -84,6 +88,7 @@ public:
             case TOK_NOT: return "`not'";
             case TOK_LPAR: return "'('";
             case TOK_RPAR: return "')'";
+            case TOK_EOF: return "EOF";
             case TOK_VAR: return yylval.c_str();
             default: return "unrecognized token";
         }

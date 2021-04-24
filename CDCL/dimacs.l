@@ -8,6 +8,8 @@
 
 static lit_t yylval;
 
+namespace {
+
 enum Token {
     TOK_HEAD,
     TOK_BAD_HEAD,
@@ -15,6 +17,8 @@ enum Token {
     TOK_C_LIT,
     TOK_EOF,
 };
+
+}
 
 %}
 
@@ -55,6 +59,11 @@ public:
 
     const char* translate(int what) {
         switch ((Token)what) {
+            case TOK_HEAD: return "dimacs header";
+            case TOK_BAD_HEAD: return "bad dimacs header";
+            case TOK_C_END: return "clause ending";
+            case TOK_C_LIT: return "literal";
+            case TOK_EOF: return "EOF";
             default: return "unrecognized token";
         }
     }
