@@ -39,10 +39,10 @@ We have a conjunctive fragment $e(\varphi)$ of the theory $T$ and we want to des
 
 This means we want to find all unassigned atoms $(x, y)$ such that there exists a path in $E_= \cup E_{\neq}$ from $x$ to $y$ with at most one edge in $E_{\neq}$ and we want to distinguish the two cases of whether an edge from $E_{\neq}$ is present on the path: $e(x = y)$ or $\neg e(x = y)$.
 
-First, we describe a simple binary operation $\oplus$ for ``path lengthening'', which takes two connected sub-paths and combines them into larger one distinguishing the cases $EQ$ if a path is a member of $E_=^*$, $NEQ$ if it is a member of $(E_=^* \cdot E_{\neq} \cdot E_=^*)$, and $NUL$. $NUL$ being a combined class for all other cases.
+First, we describe a simple binary operation $\odot$ for ``path lengthening'', which takes two connected sub-paths and combines them into larger one distinguishing the cases $EQ$ if a path is a member of $E_=^*$, $NEQ$ if it is a member of $(E_=^* \cdot E_{\neq} \cdot E_=^*)$, and $NUL$. $NUL$ being a combined class for all other cases.
 
 \begin{algorithmic}[1]
-    \Function {$\oplus$}{$a, b$}
+    \Function {$\odot$}{$a, b$}
     \If {$a == NEQ$}
         \If {$b == EQ$}
             \Return $NEQ$
@@ -57,10 +57,10 @@ First, we describe a simple binary operation $\oplus$ for ``path lengthening'', 
     \EndFunction
 \end{algorithmic}
 
-Then, we describe another binary operation $\odot$ for ``path choosing'', which takes two alternative paths from the same source to the same destination and it decides what is the relation of the source and the destination: $EQ$, $NEQ$, or $NUL$, just like in the case of $\oplus$.
+Then, we describe another binary operation $\oplus$ for ``path choosing'', which takes two alternative paths from the same source to the same destination and it decides what is the relation of the source and the destination: $EQ$, $NEQ$, or $NUL$, just like in the case of $\odot$.
 
 \begin{algorithmic}[1]
-    \Function {$\odot$}{$a, b$} \textbf{throws} $UNSAT$
+    \Function {$\oplus$}{$a, b$} \textbf{throws} $UNSAT$
     \If {$a == NEQ$}
         \If {$b == EQ$}
             \State \textbf{throw} $UNSAT$ \Comment Cannot be equal and nonequal at the same time
