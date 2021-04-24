@@ -1,0 +1,85 @@
+\documentclass[a4paper,12pt]{article} % This defines the style of your paper
+
+\usepackage[top = 2.5cm, bottom = 2.5cm, left = 2.5cm, right = 2.5cm]{geometry} 
+
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}
+
+\usepackage{multirow}
+\usepackage{booktabs}
+
+\usepackage{amsmath} 
+\usepackage{graphicx}
+
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+
+
+\newtheorem{definition}{Definition}
+\newtheorem{observation}{Observation}[definition]
+
+\usepackage{setspace}
+\setlength{\parindent}{0in}
+\setlength{\parskip}{.5em}
+
+\begin{document}
+
+\begin{center}
+    {\Large \bf Homework 6}
+    \vspace{2mm}
+
+    {\bf Jiří Klepl}
+
+\end{center}
+
+\vspace{0.4cm}
+
+We have a conjunctive fragment $e(\varphi)$ of the theory $T$ and we want to describe $DP_T$ procedure which performs an exhaustive theory propagation.
+
+This means we want to find all unassigned atoms $(x, y)$ such that there exists a path in $E_= \cup E_{\neq}$ from $x$ to $y$ with at most one edge in $E_{\neq}$ and we want to distinguish the two cases of whether an edge from $E_{\neq}$ is present on the path: $e(x = y)$ or $\neg e(x = y)$.
+
+First, we describe a simple binary operation $\oplus$ for ``path lengthening'', which takes two connected sub-paths and combines them into larger one distinguishing the cases $EQ$ if a path is a member of $E_=^*$, $NEQ$ if it is a member of $(E_=^* \cdot E_{\neq} \cdot E_=^*)$, and $NUL$. $NUL$ being a combined class for all other cases.
+
+\begin{algorithmic}[1]
+    \Function {$\oplus$}{$a, b$}
+    \If {$a == NEQ$}
+        \If {$b == EQ$}
+            \Return $NEQ$
+        \Else
+            \ \Return $NUL$ \Comment $b == NUL$ or $b == NEQ$ 
+        \EndIf
+    \ElsIf {$a == EQ$}
+        \Return $b$
+    \Else
+        \ \Return $NUL$ \Comment $a == NUL$ 
+    \EndIf
+    \EndFunction
+\end{algorithmic}
+
+Then, we describe another binary operation $\odot$ for ``path choosing'', which takes two alternative paths from the same source to the same destination and it decides what is the relation of the source and the destination: $EQ$, $NEQ$, or $NUL$, just like in the case of $\oplus$.
+
+\begin{algorithmic}[1]
+    \Function {$\odot$}{$a, b$} \textbf{throws} $UNSAT$
+    \If {$a == NEQ$}
+        \If {$b == EQ$}
+            \State \textbf{throw} $UNSAT$ \Comment Cannot be equal and nonequal at the same time
+        \Else
+            \ \Return $NEQ$ \Comment $b == NUL$ or $b == NEQ$ 
+        \EndIf
+    \ElsIf {$a == EQ$}
+        \If {$b == NEQ$}
+            \State \textbf{throw} $UNSAT$ \Comment Cannot be equal and nonequal at the same time
+        \Else
+            \ \Return $EQ$ \Comment $b == NUL$ or $b == EQ$ 
+        \EndIf
+    \Else
+        \ \Return $b$
+    \EndIf
+    \EndFunction
+\end{algorithmic}
+
+Then we create an adjacency matrix $A$ with values $A_{ij}$ being equal to $EQ$, $NEQ$, or $NUL$, similarly to before, but according to path of length $\leq1$ from $x_i$ to $x_j$ in $E_= \cup E_{\neq}$. And then we compute $B = A^i$ (using $\odot$ for multiplication and $\oplus$ for addition) for minimal $i$ s.t $\forall i' > i: A^i = A^{i'}$, note that this computation can ``\textbf{throw}'' and thus end prematurely, then we return $UNSAT$. Otherwise, we return the conjunction of all unassigned $e(x_i = x_j)$ s.t $B_{ij} = EQ$, and all unassigned $\neg e(x_i = x_j)$ s.t $B_{ij} = NEQ$. (As a side note, we can optimize this by considering only a triangular matrix; and always ends ($3^n$ value space))
+
+
+\end{document}
