@@ -119,13 +119,21 @@ int main(int, const char *argv[])
 
     auto start = std::chrono::high_resolution_clock::now();
 
-    out << (solver->solve() ? "s SATISFIABLE" : "s UNSATISFIABLE") << std::endl;
+    bool solved = solver->solve();
 
     auto end = std::chrono::high_resolution_clock::now();
 
     auto difference = end - start;
 
+    if (solved)
+        out << "s SATISFIABLE" << std::endl;
+    else
+        out << "s UNSATISFIABLE" << std::endl;
+
     out << "Took " << 1000.L * decltype(difference)::period::num * difference.count() / decltype(difference)::period::den << " ms" << std::endl;
+
+    if (!solved)
+        return 20;
 
 
     out << "Made " << solver->decided << " decisions" << std::endl;
@@ -136,4 +144,6 @@ int main(int, const char *argv[])
     for (auto &&a : solver->assign.assigned) {
         out << a << ": " << (solver->assign.variables[a] > 0 ?  "true" : solver->assign.variables[a] < 0 ? "false" : "free") << std::endl;
     }
+
+    return 10;
 }
