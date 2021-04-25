@@ -15,6 +15,9 @@
         "polycode"
     ],
     "files.associations": {
-        "iosfwd": "cpp"
-    }
+        "iosfwd": "cpp",
+        "variant": "cpp"
+    },
+    "files.insertFinalNewline": true,
+    "files.trimTrailingWhitespace": true
 }
