@@ -27,6 +27,9 @@ int main(int argc, const char *argv[])
         if (**arg == '-') {
             if (*arg == "-e"s || *arg == "--eq"s) {
                 just_impl = false;
+            } else if (*arg == "-h" || *arg == "--help") {
+                usage(std::cout);
+                return 0;
             } else {
                 std::cerr << "Unknown option: " << *arg << std::endl;
                 usage(std::cerr);
@@ -92,7 +95,7 @@ int main(int argc, const char *argv[])
         assert(!clause.empty());
 
 
-        
+
         if (finish_and) {
             assert(clause[0] < 0);
             assert(clause.size() == 2);
