@@ -41,6 +41,14 @@ The following command will build the debug version with extra assertions in the 
 make debug
 ```
 
+## Run
+
+The following command runs the dpll program
+
+```sh
+bin/main
+```
+
 ## Comparison of watched literals and adjacency lists
 
 The two version of the program were tested using [RND3SAT](https://www.cs.ubc.ca/~hoos/SATLIB/Benchmarks/SAT/RND3SAT/descr.html) uf test sets with 20, 50, and 100 variables (see [links.txt](links.txt)) by the `test.sh` script. And then analyzed by the  `script.R` R script.
