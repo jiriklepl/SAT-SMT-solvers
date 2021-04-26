@@ -14,7 +14,7 @@ void usage(std::ostream &out) {
     out << "Usage: formula2cnf [-e|--eq] [input [output]]" << std::endl;
 }
 
-int main(int argc, const char *argv[])
+int main(int, const char *argv[])
 {
     std::optional<std::ifstream> input;
     std::optional<std::ofstream> output;
@@ -25,9 +25,9 @@ int main(int argc, const char *argv[])
 
     for (const char** arg = argv + 1; *arg != nullptr; ++arg) {
         if (**arg == '-') {
-            if (*arg == "-e"s || *arg == "--eq"s) {
+            if (*arg == "-e"s || *arg == "--equiv"s) {
                 just_impl = false;
-            } else if (*arg == "-h" || *arg == "--help") {
+            } else if (*arg == "-h"s || *arg == "--help"s) {
                 usage(std::cout);
                 return 0;
             } else {

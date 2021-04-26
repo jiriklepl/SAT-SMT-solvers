@@ -30,7 +30,7 @@ int main(int, const char *argv[])
 
     for (const char** arg = argv + 1; *arg != nullptr; ++arg) {
         if (**arg == '-') {
-            if (*arg == "-e"s || *arg == "--eq"s) {
+            if (*arg == "-e"s || *arg == "--equiv"s) {
                 just_impl = false;
             } else if (*arg == "-c"s || *arg == "--dimacs"s) {
                 forced_dimacs = true;
