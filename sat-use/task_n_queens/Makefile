@@ -1,5 +1,3 @@
-#!/bin/sh
-
 .PHONY: run
 
 run: out/queens100.cnf out
