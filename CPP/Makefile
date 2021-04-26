@@ -13,7 +13,7 @@ OBJECT_FILES := main.o satlib.o dimacs.o
 
 .PHONY: all debug clean release
 
-all: release debug profile
+all: release debug profile formula2cnf
 release: $(BINDIR)$(BIN)
 debug: $(DEBUGDIR)$(BIN)
 profile: $(PROFILEDIR)$(BIN)
@@ -26,6 +26,9 @@ $(DEBUGDIR)$(BIN): $(patsubst %,$(DEBUGDIR)%,$(OBJECT_FILES))
 
 $(PROFILEDIR)$(BIN): $(patsubst %,$(PROFILEDIR)%,$(OBJECT_FILES))
 	$(CXX) $(CXXOPTS_DEBUG) -o $@ $(patsubst %,$(PROFILEDIR)%,$(OBJECT_FILES))
+
+formula2cnf: $(BINDIR)formula2cnf.o $(BINDIR)satlib.o
+	$(CXX) $(CXXOPTS) -o $@ $^
 
 $(BINDIR):
 	mkdir $@
