@@ -10,7 +10,7 @@ minibones <- read_delim("out/minibones.csv", col_names=c("clauses", "backbones",
 for (i in (1:5)*20-10) {
     transform <- function(x) x %>% filter(backbones==i) %>% group_by(clauses) %>% summarize(time=mean(time), calls=mean(calls))
     print_data = function(data) {
-        
+
     }
     cadicat <- cadibones %>% transform
     minisat <- minibones %>% transform
