@@ -1,5 +1,7 @@
 # Testing Equivalence
 
+For this assignment, I used **minisat**, which according to the previous assignments is the fastest of the tested SAT solvers.
+
 The program `main` built by `make` takes three arguments: `short|long|long_eq FILE1 FILE2` and then determines whether the formula specified by the DIMACS file `FILE1` implies the formula specified by the DIMACS file `FILE2`.
 
 The first argument determines which version of the algorithm is used: (lets call the first formula F and the second P)

@@ -21,7 +21,7 @@ The actual implementation skips the first step, but it follows this overall desc
 
 The variations each use on of cadicat, lingeling, minisat, and glucose. And their performance was measured on time and the number of calls.
 
-The measurements were performed on [Controlled Backbone Size Instances](https://www.cs.ubc.ca/~hoos/SATLIB/Benchmarks/SAT/CBS/descr_CBS.html)
+The measurements were performed on [Controlled Backbone Size Instances](https://www.cs.ubc.ca/~hoos/SATLIB/Benchmarks/SAT/CBS/descr_CBS.html) (see [links.txt](links.txt) for the exact datasets)
 
 ## Time
 
