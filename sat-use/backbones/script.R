@@ -12,12 +12,12 @@ for (i in (1:5)*20-10) {
     print_data = function(data) {
 
     }
-    cadicat <- cadibones %>% transform
+    cadical <- cadibones %>% transform
     minisat <- minibones %>% transform
     glucose <- glucobones %>% transform
     lingeling <- lglbones %>% transform
 
-    data <- cbind("x"=cadicat$clauses, "minisat"=minisat$time, "cadicat"=cadicat$time, "glucose"=glucose$time, "lingeling"=lingeling$time) %>% as_tibble
+    data <- cbind("x"=cadical$clauses, "minisat"=minisat$time, "cadical"=cadical$time, "glucose"=glucose$time, "lingeling"=lingeling$time) %>% as_tibble
 
     pdf("/dev/null")
     data %>%
@@ -25,14 +25,14 @@ for (i in (1:5)*20-10) {
         geom_line(aes(y=minisat, color="minisat")) +
         geom_line(aes(y=glucose, color="glucose")) +
         geom_line(aes(y=lingeling, color="lingeling")) +
-        geom_line(aes(y=cadicat, color="cadicat")) +
+        geom_line(aes(y=cadical, color="cadical")) +
         ggtitle(paste("Using SAT solvers on \"backbones\" program;", 100, "variables,", i, "backbones")) +
         xlab("clauses") +
         ylab("time [ms]") +
     ggsave(paste("times_", i, ".png", sep=""))
     dev.off();
 
-    data <- cbind("x"=cadicat$clauses, "minisat"=minisat$calls, "cadicat"=cadicat$calls, "glucose"=glucose$calls, "lingeling"=lingeling$calls) %>% as_tibble
+    data <- cbind("x"=cadical$clauses, "minisat"=minisat$calls, "cadical"=cadical$calls, "glucose"=glucose$calls, "lingeling"=lingeling$calls) %>% as_tibble
 
     pdf("/dev/null")
     data %>%
@@ -40,7 +40,7 @@ for (i in (1:5)*20-10) {
         geom_line(aes(y=minisat, color="minisat")) +
         geom_line(aes(y=glucose, color="glucose")) +
         geom_line(aes(y=lingeling, color="lingeling")) +
-        geom_line(aes(y=cadicat, color="cadicat")) +
+        geom_line(aes(y=cadical, color="cadical")) +
         ggtitle(paste("Using SAT solvers on \"backbones\" program;", 100, "variables,", i, "backbones")) +
         xlab("clauses") +
         ylab("calls") +

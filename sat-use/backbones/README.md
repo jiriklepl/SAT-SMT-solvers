@@ -19,7 +19,7 @@ The algorithm is as follows:
 
 The actual implementation skips the first step, but it follows this overall description in all of the variations.
 
-The variations each use on of cadicat, lingeling, minisat, and glucose. And their performance was measured on time and the number of calls.
+The variations each use on of cadical, lingeling, minisat, and glucose. And their performance was measured on time and the number of calls.
 
 The measurements were performed on [Controlled Backbone Size Instances](https://www.cs.ubc.ca/~hoos/SATLIB/Benchmarks/SAT/CBS/descr_CBS.html) (see [links.txt](links.txt) for the exact datasets)
 
@@ -43,7 +43,7 @@ If we used the naive approach by testing whether a formula can be satisfied with
 ![calls_10.png](calls_70.png)
 ![calls_10.png](calls_90.png)
 
-Here, cadicat, the lookahead solver, is the best one. Which makes sense, as it uses more powerful heuristics (but which costs it a lot of time).
+Here, cadical, the lookahead solver, is the best one. Which makes sense, as it uses more powerful heuristics (but which costs it a lot of time).
 
 ## Conclusion
 
