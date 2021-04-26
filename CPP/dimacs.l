@@ -78,7 +78,7 @@ public:
             } else if (token != TOK_C_END) {
                 std::cerr << "bad format for the number of variables" << std::endl;
             }
-            
+
             token = scanner.yylex();
             if (token == TOK_C_LIT && yylval > 0) {
                 cnf.reserve(yylval);
