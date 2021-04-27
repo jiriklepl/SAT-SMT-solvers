@@ -12,7 +12,7 @@ The algorithm is as follows:
 3. Update the vector of suspected backbones by eliminating the ones that are not in the assignment
 4. Give the SAT solver a blocking clause requesting assignment of negation of one of the suspected backbones (we let the SAT solver choose)
 5. return to 2.
-6. If the formula doesn't have a model, there are no backbones
+6. If the original formula doesn't have a model, there are no backbones
 7. Otherwise, we return the current vector of suspected backbones
 
 ## Implementation

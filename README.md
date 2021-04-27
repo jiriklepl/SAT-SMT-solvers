@@ -47,3 +47,5 @@ If no format option is used, the program derives it from the extension of the fi
 ## Programming assignments - Using a SAT solver
 
 - [**N Queens Puzzle**](sat-use/task_n_queens)
+- [**Backbones**](sat-use/task_n_queens)
+- [**Testing Equivalence**](sat-use/task_n_queens)
