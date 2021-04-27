@@ -1,6 +1,7 @@
 #ifndef SHARED_HPP
 #define SHARED_HPP
 
+#include <cassert>
 #include <cstdint>
 #include <utility>
 #include <vector>
@@ -21,7 +22,8 @@ struct Assignment {
      * +d = assigned true at decision lvl d
      * -d = assigned false at decision lvl d
      */
-    std::vector<lit_t> variables;
+    std::vector<lit_t> variables; // variables[0] stands for the the contradiction
+    std::vector<lit_t> antecedents; // antecedents[0] stands for the the contradiction
 
     // list of assigned variables
     std::vector<std::size_t> assigned;
@@ -99,12 +101,6 @@ public:
 private:
     lit_t* start_;
     lit_t* end_;
-};
-
-class Adjacency : public memory_handle {
-public:
-    Adjacency() noexcept = default;
-    Adjacency(lit_t *start, lit_t *end) : memory_handle(start, end) {}
 };
 
 class Solver {

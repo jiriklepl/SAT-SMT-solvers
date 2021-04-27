@@ -15,7 +15,7 @@ class Clause<watch_tag> {
 public:
     using WatchHandle = std::pair<lit_t, std::size_t>*;
 
-    static constexpr std::size_t get_var(WatchHandle w) { return std::abs(w->first); }
+    static std::size_t get_var(WatchHandle w) { return std::abs(w->first); }
 
     static constexpr lit_t &get_lit(WatchHandle &w) { return w->first; }
     static constexpr const lit_t &get_lit(const WatchHandle &w) { return w->first; }
@@ -127,6 +127,10 @@ public:
 template<>
 class Cnf<watch_tag> {
 public:
+    std::size_t index(const Clause<watch_tag> &clause) const {
+        return &clause - &clauses.front();
+    }
+
     std::vector<Clause<watch_tag>*> units;
     std::vector<Clause<watch_tag>*> satisfied;
     std::vector<Clause<watch_tag>> clauses;
@@ -140,12 +144,16 @@ public:
         return solve(0);
     }
 
+    // TODO: refactor this
     void set(std::vector<std::vector<lit_t>> &list) override {
         assign.assigned. clear();
         assign.unassigned.clear();
         assign.variables.clear();
+        assign.antecedents.clear();
+
         wch.watched_at.clear();
         cnf.contra = false;
+
         std::size_t total_size = 0;
 
         for (auto &&c : list) {
@@ -165,8 +173,10 @@ public:
                 cnf.literals[l_counter++] = {l, 0};
                 std::size_t var = (l > 0) ? l : -l;
                 if (var >= wch.watched_at.size()) {
-                    wch.watched_at.resize(2 * var);
                     assign.variables.resize(2 * var);
+                    assign.antecedents.resize(2 * var);
+
+                    wch.watched_at.resize(2 * var);
                 }
 
                 assign.unassigned.emplace(var);
@@ -193,18 +203,19 @@ private:
             assert(l != 0);
 
             if (l > 0)
-                update(l, d, true);
+                update(l, d, true, (std::size_t)(&clause - &cnf.clauses.front()));
             else
-                update(-l, d, false);
+                update(-l, d, false, (std::size_t)(&clause - &cnf.clauses.front()));
         }
 
         return !cnf.contra;
     }
 
-    void update(std::size_t variable, lit_t d, bool is_true) {
+    void update(std::size_t variable, lit_t d, bool is_true, lit_t antecedent) {
         assign.assigned.emplace_back(variable);
         assign.unassigned.erase(variable);
         assign.variables[variable] = is_true ? d : -d;
+        assign.antecedents[variable] = antecedent;
         auto end = wch.watched_at[variable].end();
         for (auto it = wch.watched_at[variable].begin(); it != end; ++it) {
             auto clause = *it;
@@ -225,6 +236,7 @@ private:
                 cnf.units.emplace_back(clause);
             else if (clause->is_empty(assign.variables)) {
                 cnf.contra = true;
+                assign.antecedents[0] = cnf.index(*clause); // FIXME? maybe **it
                 break;
             }
 
@@ -246,14 +258,14 @@ private:
         auto val = *assign.unassigned.begin();
 
         ++decided;
-        update(val, d + 1, true);
+        update(val, d + 1, true, 0);
 
         if (solve(d + 1))
             return true;
         else
             rollback(d);
 
-        update(val, d + 1, false);
+        update(val, d + 1, false, 0);
 
         if (solve(d + 1))
             return true;

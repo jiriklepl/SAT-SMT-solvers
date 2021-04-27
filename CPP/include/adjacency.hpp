@@ -20,10 +20,20 @@ public:
 template<>
 class Cnf<adjacency_tag> {
 public:
+    std::size_t index(const Clause<adjacency_tag> &clause) const {
+        return &clause - &clauses.front();
+    }
+
     std::vector<Clause<adjacency_tag>*> units;
     std::vector<Clause<adjacency_tag>> clauses;
     std::vector<lit_t> literals;
     bool contra;
+};
+
+class Adjacency : public memory_handle {
+public:
+    Adjacency() noexcept = default;
+    Adjacency(lit_t *start, lit_t *end) : memory_handle(start, end) {}
 };
 
 struct AdjacencyList {
@@ -37,12 +47,16 @@ public:
         return solve(0);
     }
 
+    // TODO: refactor this
     void set(std::vector<std::vector<lit_t>> &list) override {
         assign.assigned. clear();
         assign.unassigned.clear();
         assign.variables.clear();
+        assign.antecedents.clear();
+
         adj.adjacency.clear();
         cnf.contra = false;
+
         std::size_t total_size = 0;
 
         for (auto &&c : list) {
@@ -65,6 +79,8 @@ public:
                 std::size_t var = (l > 0) ? l : -l;
                 if (var >= adjacency.size()) {
                     adjacency.resize(2 * var);
+                    assign.antecedents.resize(2 * var);
+
                     assign.variables.resize(2 * var);
                 }
 
@@ -110,10 +126,11 @@ public:
     }
 
 private:
-    void update(lit_t variable, lit_t d, bool is_true) {
+    void update(lit_t variable, lit_t d, bool is_true, lit_t antecedent) {
         assign.assigned.push_back(variable);
         assign.unassigned.erase(variable);
         assign.variables[variable] = is_true ? d : -d;
+        assign.antecedents[variable] = antecedent;
         if (is_true) {
             for (auto &&a : adj.adjacency[variable]) {
                 if (a > 0) {
@@ -128,8 +145,12 @@ private:
                 } else {
                     auto &&clause = cnf.clauses[-a];
                     clause.remove(clause.find(-variable));
-                    if (clause.is_unit()) cnf.units.push_back(&clause);
-                    if (clause.is_empty()) cnf.contra = true;
+                    if (clause.is_unit()) {
+                        cnf.units.push_back(&clause);
+                    } else if (clause.is_empty()) {
+                        cnf.contra = true;
+                        assign.antecedents[0] = cnf.index(clause);
+                    }
                 }
             }
         } else {
@@ -137,8 +158,12 @@ private:
                 if (a > 0) {
                     auto &&clause = cnf.clauses[a];
                     clause.remove(clause.find(variable));
-                    if (clause.is_unit()) cnf.units.push_back(&clause);
-                    if (clause.is_empty()) cnf.contra = true;
+                    if (clause.is_unit()) {
+                        cnf.units.push_back(&clause);
+                    } else if (clause.is_empty()) {
+                        cnf.contra = true;
+                        assign.antecedents[0] = cnf.index(clause);
+                    }
                 } else {
                     auto &&clause = cnf.clauses[-a];
                     clause.remove(clause.find(-variable));
@@ -199,9 +224,9 @@ private:
             auto l = *clause.begin();
 
             if (l > 0) {
-                update(l, d, true);
+                update(l, d, true, cnf.index(clause));
             } else {
-                update(-l, d, false);
+                update(-l, d, false, cnf.index(clause));
             }
         }
 
@@ -222,14 +247,14 @@ private:
         auto val = *var;
 
         ++decided;
-        update(val, d + 1, true);
+        update(val, d + 1, true, 0);
 
         if (solve(d + 1))
             return true;
         else
             rollback(d);
 
-        update(val, d + 1, false);
+        update(val, d + 1, false, 0);
 
         return solve(d + 1);
     }
