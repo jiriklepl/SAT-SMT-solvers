@@ -14,6 +14,6 @@ public:
     lit_t var_counter;
 };
 
-inline cnf_parser::~cnf_parser() = default;
+inline cnf_parser::~cnf_parser() noexcept = default;
 
 #endif // CNF_PARSER_HPP

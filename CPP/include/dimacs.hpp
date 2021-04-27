@@ -13,7 +13,7 @@ public:
     ~dimacs_parser() noexcept override = 0;
 };
 
-inline dimacs_parser::~dimacs_parser() = default;
+inline dimacs_parser::~dimacs_parser() noexcept = default;
 
 std::unique_ptr<dimacs_parser> dimacs_parse(std::istream &in);
 
