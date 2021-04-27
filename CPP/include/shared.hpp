@@ -31,6 +31,7 @@ struct Assignment {
     // set of unassigned variables
     std::unordered_set<std::size_t> unassigned;
 };
+
 template<typename parent, typename V>
 struct iterator_impl {
     friend parent;
@@ -117,5 +118,64 @@ public:
 };
 
 inline Solver::~Solver() {}
+
+template<typename tag>
+std::pair<std::vector<lit_t>, lit_t> clause1uip(const decltype(Assignment::antecedents) &antecedents, const decltype(Assignment::variables) &variables, const decltype(Cnf<tag>::clauses) &clauses) {
+    std::vector<lit_t> others; // contains all literals l'@d' s.t. d' < d
+    std::vector<lit_t> last; // contains all literals l@d
+
+    auto d = variables[0];
+    lit_t level = 0;
+
+    {
+        const auto &&clause = clauses[antecedents[0]];
+        for (auto &&lit : clause) {
+            auto var = std::abs(lit);
+            auto other_d = variables[var];
+
+            if (other_d == d) {
+                last.push_back(lit);
+            } else {
+                if (other_d > level)
+                    level = other_d;
+
+                others.push_back(lit);
+            }
+        }
+    }
+
+    while (last.size() > 1) {
+        auto lit = last.back();
+        auto var = std::abs(lit);
+        last.pop_back();
+
+        const auto &&clause = clauses[antecedents[var]];
+
+        for (auto &&other_lit : clause) {
+            auto other_var = std::abs(other_lit);
+
+            if (var == other_var)
+                continue; // resolution
+
+            auto other_d = variables[other_var];
+
+            if (other_d == d) {
+                last.push_back(other_lit);
+            } else {
+                if (other_d > level)
+                    level = other_d;
+
+                others.push_back(other_lit);
+            }
+        }
+    }
+
+    // let's assert that the clause is assertive (using c asserts):
+    assert(last.size() == 1);
+
+    others.push_back(last.back());
+
+    return std::make_pair(std::move(others), level);
+}
 
 #endif // SHARED_HPP

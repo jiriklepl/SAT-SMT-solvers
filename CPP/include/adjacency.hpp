@@ -150,6 +150,7 @@ private:
                     } else if (clause.is_empty()) {
                         cnf.contra = true;
                         assign.antecedents[0] = cnf.index(clause);
+                        assign.variables[0] = d;
                     }
                 }
             }
@@ -163,6 +164,7 @@ private:
                     } else if (clause.is_empty()) {
                         cnf.contra = true;
                         assign.antecedents[0] = cnf.index(clause);
+                        assign.variables[0] = d;
                     }
                 } else {
                     auto &&clause = cnf.clauses[-a];

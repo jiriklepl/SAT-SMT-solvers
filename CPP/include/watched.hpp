@@ -13,7 +13,8 @@ struct WatchedList {
 template<>
 class Clause<watch_tag> {
 public:
-    using WatchHandle = std::pair<lit_t, std::size_t>*;
+    using value_t = std::pair<lit_t, std::size_t>;
+    using WatchHandle = value_t*;
 
     static std::size_t get_var(WatchHandle w) { return std::abs(w->first); }
 
@@ -25,20 +26,27 @@ public:
 
     Clause() noexcept = default;
     Clause(WatchHandle _start, WatchHandle _end, WatchedList &watched_list) noexcept
-        : start(_start), end(_end), w1(_start), w2(_end - 1), satisfied(0) {
-            assert(start != nullptr);
-            assert(end != nullptr);
-            assert(w1 != w2);
+        : start(_start), after(_end), w1(_start), w2(_end - 1), satisfied(0)
+    {
+        assert(start != nullptr);
+        assert(after != nullptr);
+        assert(w1 != w2);
 
-            w1->second = watched_list.watched_at[get_var(w1)].size();
-            watched_list.watched_at[get_var(w1)].emplace_back(this);
+        w1->second = watched_list.watched_at[get_var(w1)].size();
+        watched_list.watched_at[get_var(w1)].emplace_back(this);
 
-            w2->second = watched_list.watched_at[get_var(w2)].size();
-            watched_list.watched_at[get_var(w2)].emplace_back(this);
+        w2->second = watched_list.watched_at[get_var(w2)].size();
+        watched_list.watched_at[get_var(w2)].emplace_back(this);
 
-            assert(watched_list.watched_at[get_var(w1)][get_pos(w1)] == this);
-            assert(watched_list.watched_at[get_var(w2)][get_pos(w2)] == this);
-        }
+        assert(watched_list.watched_at[get_var(w1)][get_pos(w1)] == this);
+        assert(watched_list.watched_at[get_var(w2)][get_pos(w2)] == this);
+    }
+
+    value_t *begin() { return start; }
+    const value_t *begin() const { return start; }
+    value_t *end() { return after; }
+    const value_t *end() const { return after; }
+
     bool update(const std::vector<lit_t> &variables, WatchedList &watched_list) noexcept {
         if (variables[get_var(w1)] * get_lit(w1) > 0)
             return true;
@@ -47,37 +55,36 @@ public:
 
         auto tmp = w2;
         for (++w2;;++w2) {
-            if (w2 == end) w2 = start;
+            if (w2 == after) w2 = start;
             if (w2 == tmp) break;
             else if (variables[get_var(w2)] == 0) {
-                if (w2 == w1) {
+                if (w2 == w1)
                     continue;
-                } else {
-                    assert(variables[get_var(w1)] == 0);
-                    auto &&var_item = watched_list.watched_at[get_var(tmp)];
-                    auto &&this_ref = watched_list.watched_at[get_var(tmp)][get_pos(tmp)];
-                    assert(this_ref == this);
 
-                    if (&this_ref != &var_item.back()) {
-                        std::swap(this_ref, var_item.back());
-                        if(get_var(tmp) == get_var(this_ref->w1)) {
-                            get_pos(this_ref->w1) = get_pos(tmp);
-                        } else {
-                            assert(get_var(tmp) == get_var(this_ref->w2));
-                            get_pos(this_ref->w2) = get_pos(tmp);
-                        }
+                assert(variables[get_var(w1)] == 0);
+                auto &&var_item = watched_list.watched_at[get_var(tmp)];
+                auto &&this_ref = watched_list.watched_at[get_var(tmp)][get_pos(tmp)];
+                assert(this_ref == this);
 
-                        assert(this_ref->w1 != this_ref->w2);
-                        assert(watched_list.watched_at[get_var(this_ref->w1)][get_pos(this_ref->w1)] == this_ref);
-                        assert(watched_list.watched_at[get_var(this_ref->w2)][get_pos(this_ref->w2)] == this_ref);
+                if (&this_ref != &var_item.back()) {
+                    std::swap(this_ref, var_item.back());
+                    if(get_var(tmp) == get_var(this_ref->w1)) {
+                        get_pos(this_ref->w1) = get_pos(tmp);
+                    } else {
+                        assert(get_var(tmp) == get_var(this_ref->w2));
+                        get_pos(this_ref->w2) = get_pos(tmp);
                     }
 
-                    var_item.pop_back();
-
-                    get_pos(w2) = watched_list.watched_at[get_var(w2)].size();
-                    watched_list.watched_at[get_var(w2)].emplace_back(this);
-                    break;
+                    assert(this_ref->w1 != this_ref->w2);
+                    assert(watched_list.watched_at[get_var(this_ref->w1)][get_pos(this_ref->w1)] == this_ref);
+                    assert(watched_list.watched_at[get_var(this_ref->w2)][get_pos(this_ref->w2)] == this_ref);
                 }
+
+                var_item.pop_back();
+
+                get_pos(w2) = watched_list.watched_at[get_var(w2)].size();
+                watched_list.watched_at[get_var(w2)].emplace_back(this);
+                break;
             } else if (variables[get_var(w2)] * get_lit(w2) > 0) {
                 w2 = tmp;
 
@@ -118,7 +125,7 @@ public:
     }
 
 private:
-    WatchHandle start, end, w1, w2;
+    WatchHandle start, after, w1, w2;
 
 public:
     lit_t satisfied;
@@ -156,9 +163,8 @@ public:
 
         std::size_t total_size = 0;
 
-        for (auto &&c : list) {
+        for (auto &&c : list)
             total_size += c.size();
-        }
 
         cnf.literals.resize(total_size);
         cnf.clauses.resize(list.size() + 1);
@@ -232,11 +238,13 @@ private:
                 clause->satisfied = d;
                 continue;
             }
-            if (clause->is_unit(assign.variables))
+
+            if (clause->is_unit(assign.variables)) {
                 cnf.units.emplace_back(clause);
-            else if (clause->is_empty(assign.variables)) {
+            } else if (clause->is_empty(assign.variables)) {
                 cnf.contra = true;
                 assign.antecedents[0] = cnf.index(*clause); // FIXME? maybe **it
+                assign.variables[0] = d; // contradiction is always true!
                 break;
             }
 
