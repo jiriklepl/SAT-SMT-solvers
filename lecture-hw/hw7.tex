@@ -1,0 +1,76 @@
+\documentclass[a4paper,12pt]{article} % This defines the style of your paper
+
+\usepackage[top = 2.5cm, bottom = 2.5cm, left = 2.5cm, right = 2.5cm]{geometry}
+
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}
+
+\usepackage{multirow}
+\usepackage{booktabs}
+
+\usepackage{amsmath}
+\usepackage{graphicx}
+
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+
+\usepackage{listings}
+\lstset{language=C}
+
+\newtheorem{definition}{Definition}
+\newtheorem{observation}{Observation}[definition]
+
+\usepackage{setspace}
+\setlength{\parindent}{0in}
+\setlength{\parskip}{.5em}
+
+\begin{document}
+
+\begin{center}
+    {\Large \bf Homework 7}
+    \vspace{2mm}
+
+    {\bf Jiří Klepl}
+
+\end{center}
+
+\vspace{0.4cm}
+
+We want to generalize the idea of checking of program equivalence to the situation where we can write to variables as well. First, I will give a general idea and then I will explain how to achieve it.
+
+So far, we naively assumed the world is something which does never change. If we want to allow writes, this naive idea instantly falls apart.
+
+What I propose is that we introduce a `world' variable. Statements and procedure calls will take this world variable and output it as well. Function calls will take the world variable on top of their arguments and output a 2-value tuple consisting of its return value and the world variable. All other language construct will follow this basic idea. (We don't have to follow this idea literally, just semantically)
+
+Every write to a certain address will change the world variable and every read from an address will retrieve a value from the world variable. Previously, we would translate a program:
+
+\begin{lstlisting}
+a->data = 1;
+x = a->data;
+a->data = 2;
+x = a->data;
+\end{lstlisting}
+
+as: $data(a) = 1 \land x = data(a) \land data(a) = 2 \land x_1 = data(a)$ (notice the quasi-SSA form)
+
+I propose a use of two functions: $W(addr, val, world) \to world'$ and $R(addr, world) \to val$ for writes and reads, respectively (and $T$ for tuples), and $W_i$ for the world variables; and thus rewrite the program as follows (simplified as we know the $data$ accessor has no side-effects):
+
+$W_{i+1} = W(data(R(a, W_i)), 1, W_i) \land \\
+ W_{i+2} = W(x, R(data(R(a, W_{i+1})), W_{i+1}), W_{i+1}) \land \\
+ W_{i+3} = W(data(R(a, W_{i+2})), 2, W_{i+2}) \land \\
+ W_{i+4} = W(x, R(data(R(a, W_{i+3})), W_{i+3}), W_{i+3})$
+
+This idea works for \lstinline{if} statements too and we can use recursion, this gives us an ability to represent an arbitrary algorithm. All we need is a good set of additional axioms:
+
+\begin{itemize}
+    \item independent writes: $a \neq b \to W(a, x, W(b, y, W_i)) = W(b, y, W(a, x, W_i))$
+    \item overwrite: $W(a, x, W(a, y, W_i)) = W(a, x, W_i)$
+    \item write and read: $R(a, W(a, x, W_i)) = x$
+    \item unnecessary write : $R(a, W_i) = x \to W(a, x, W_i) = W_i$ (prevents hidden side-effects)
+    \item (\textit{bonus, if we want}) safe memory: $R(a, W_0) = NULL$
+\end{itemize}
+
+Then, all we need to specify is that local variables have distinct addresses. For heap, we can use a malloc function which returns a fresh address from each call. This is easy if we associate local variable addresses with positive values and heap-allocated addresses with negative, for example. For auto storage variables, we can use a stack counter.
+
+\end{document}
