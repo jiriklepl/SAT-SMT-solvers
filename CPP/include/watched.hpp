@@ -12,6 +12,7 @@ struct WatchedList {
 
 template<>
 class Clause<watch_tag> {
+    friend Cnf<watch_tag>;
 public:
     using value_t = std::pair<lit_t, std::size_t>;
     using WatchHandle = value_t*;
@@ -30,7 +31,7 @@ public:
     {
         assert(start != nullptr);
         assert(after != nullptr);
-        assert(w1 != w2);
+        assert(after - start == 1 || w1 != w2);
 
         w1->second = watched_list.watched_at[get_var(w1)].size();
         watched_list.watched_at[get_var(w1)].emplace_back(this);
@@ -75,7 +76,7 @@ public:
                         get_pos(this_ref->w2) = get_pos(tmp);
                     }
 
-                    assert(this_ref->w1 != this_ref->w2);
+                    assert(this_ref->after - this_ref->start == 1 || this_ref->w1 != this_ref->w2);
                     assert(watched_list.watched_at[get_var(this_ref->w1)][get_pos(this_ref->w1)] == this_ref);
                     assert(watched_list.watched_at[get_var(this_ref->w2)][get_pos(this_ref->w2)] == this_ref);
                 }
@@ -88,14 +89,14 @@ public:
             } else if (variables[get_var(w2)] * get_lit(w2) > 0) {
                 w2 = tmp;
 
-                assert(w1 != w2);
+                assert(after - start == 1 || w1 != w2);
                 assert(watched_list.watched_at[get_var(w1)][get_pos(w1)] == this);
                 assert(watched_list.watched_at[get_var(w2)][get_pos(w2)] == this);
                 return true;
             }
         }
 
-        assert(w1 != w2);
+        assert(after - start == 1 || w1 != w2);
         assert(watched_list.watched_at[get_var(w1)][get_pos(w1)] == this);
         assert(watched_list.watched_at[get_var(w2)][get_pos(w2)] == this);
         assert((variables[get_var(w1)] == 0) || (variables[get_var(w2)] != 0));
@@ -136,6 +137,37 @@ class Cnf<watch_tag> {
 public:
     std::size_t index(const Clause<watch_tag> &clause) const {
         return &clause - &clauses.front();
+    }
+
+    void learn(const std::vector<lit_t> &clause, WatchedList &watched_list) {
+        std::size_t end = literals.end() - literals.begin();
+
+        if (literals.size() + clause.size() > literals.capacity()) {
+            auto orig = literals.data();
+
+            for (auto &&lit : clause)
+                literals.emplace_back(lit, 0);
+
+            for (auto &&clause : clauses) {
+                clause.start = clause.start - orig + literals.data();
+                clause.after = clause.after - orig + literals.data();
+                clause.w1 = clause.w1 - orig + literals.data();
+                clause.w2 = clause.w2 - orig + literals.data();
+            }
+        }
+
+        if (clauses.size() < clause.capacity()) {
+            clauses.emplace_back(literals.data() + end, &*literals.end(), watched_list);
+            return;
+        }
+
+        auto orig = clauses.data();
+        clauses.emplace_back(literals.data() + end, &*literals.end(), watched_list);
+
+        for (auto &&lit_watched : watched_list.watched_at) {
+            for (auto &&clause : lit_watched)
+                clause = clause - orig + clauses.data();
+        }
     }
 
     std::vector<Clause<watch_tag>*> units;
