@@ -154,20 +154,25 @@ public:
                 clause.w1 = clause.w1 - orig + literals.data();
                 clause.w2 = clause.w2 - orig + literals.data();
             }
+        } else {
+            for (auto &&lit : clause)
+                literals.emplace_back(lit, 0);
         }
 
-        if (clauses.size() < clause.capacity()) {
+        if (clauses.size() < clauses.capacity()) {
             clauses.emplace_back(literals.data() + end, &*literals.end(), watched_list);
             return;
         }
 
         auto orig = clauses.data();
-        clauses.emplace_back(literals.data() + end, &*literals.end(), watched_list);
+        clauses.emplace_back();
 
         for (auto &&lit_watched : watched_list.watched_at) {
             for (auto &&clause : lit_watched)
                 clause = clause - orig + clauses.data();
         }
+
+        new (&clauses.back()) Clause<watch_tag>(literals.data() + end, &*literals.end(), watched_list);
     }
 
     std::vector<Clause<watch_tag>*> units;
