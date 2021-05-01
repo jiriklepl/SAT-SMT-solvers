@@ -8,6 +8,7 @@
 #include "dimacs.hpp"
 #include "satlib.hpp"
 #include "watched.hpp"
+#include "watched_cdcl.hpp"
 #include "adjacency.hpp"
 
 void usage(std::ostream &out) {
@@ -26,7 +27,11 @@ int main(int, const char *argv[])
     bool just_impl = true;
     bool forced_dimacs = false;
     bool forced_satlib = false;
-    bool adjacency = false;
+    enum {
+        ADJACENCY,
+        WATCHED,
+        CDCL_WATCHED
+    } solver_type = CDCL_WATCHED;
 
     for (const char** arg = argv + 1; *arg != nullptr; ++arg) {
         if (**arg == '-') {
@@ -42,7 +47,9 @@ int main(int, const char *argv[])
                 usage(std::cout);
                 return 0;
             } else if (*arg == "-a"s || *arg == "--adjacency"s) {
-                adjacency = true;
+                solver_type = ADJACENCY;
+            } else if (*arg == "-w"s || *arg == "--watched"s) {
+                solver_type = WATCHED;
             } else {
                 std::cerr << "Unknown option: " << *arg << std::endl;
                 usage(std::cerr);
@@ -76,10 +83,17 @@ int main(int, const char *argv[])
 
     std::unique_ptr<Solver> solver;
 
-    if (adjacency)
+    switch (solver_type) {
+    case ADJACENCY:
         solver = std::make_unique<SolverAdjacency>();
-    else
+    break;
+    case WATCHED:
         solver = std::make_unique<SolverWatched>();
+    break;
+    case CDCL_WATCHED:
+        solver = std::make_unique<SolverWatchedCDCL>();
+    break;
+    }
 
     std::istream& in = input.has_value() ? *input : std::cin;
     std::ostream& out = output.has_value() ? *output : std::cout;
