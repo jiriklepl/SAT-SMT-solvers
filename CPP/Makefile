@@ -31,13 +31,13 @@ formula2cnf: $(BINDIR)formula2cnf.o $(BINDIR)satlib.o
 	$(CXX) $(CXXOPTS) -o $@ $^
 
 $(BINDIR):
-	mkdir $@
+	mkdir -p $@
 
 $(DEBUGDIR):
-	mkdir $@
+	mkdir -p $@
 
 $(PROFILEDIR):
-	mkdir $@
+	mkdir -p $@
 
 $(BINDIR)%.o: %.cpp $(wildcard $(INCLUDE)/*)
 	@$(MAKE)  $(BINDIR) > /dev/null
