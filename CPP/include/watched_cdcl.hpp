@@ -35,8 +35,8 @@ public:
 
             for (auto &&l : c) {
                 cnf.literals[l_counter++] = {l, 0};
-                std::size_t var = (l > 0) ? l : -l;
-                if (var >= wch.watched_at.size()) {
+                var_t var = (l > 0) ? l : -l;
+                if ((std::size_t)var >= wch.watched_at.size()) {
                     assign.variables.resize(2 * var);
                     assign.antecedents.resize(2 * var);
 
@@ -54,7 +54,7 @@ public:
     }
 
 private:
-    bool unit_propag(lit_t d) {
+    bool unit_propag(var_t d) {
         for (; !cnf.contra && !cnf.units.empty(); cnf.units.pop_back()) {
             auto &&clause = *cnf.units.back();
             if (clause.satisfied > 0)
@@ -75,7 +75,7 @@ private:
         return !cnf.contra;
     }
 
-    void update(std::size_t variable, lit_t d, bool is_true, lit_t antecedent) {
+    void update(var_t variable, var_t d, bool is_true, lit_t antecedent) {
         assign.assigned.emplace_back(variable);
         assign.unassigned.erase(variable);
         assign.variables[variable] = is_true ? d : -d;
@@ -106,15 +106,15 @@ private:
                 break;
             }
 
-            assert(std::abs(clause->get_watch()) != variable);
-            if (std::abs(clause->snd_watch()) != variable) {
+            assert(clause->get_watch_var() != variable);
+            if (clause->snd_watch_var() != variable) {
                 --it;
                 --end;
             }
         }
     }
 
-    bool solve(lit_t d) {
+    bool solve(var_t d) {
         do {
             while (!unit_propag(d)) {
                 if (d == 1)
@@ -136,13 +136,13 @@ private:
         } while (true);
     }
 
-    void rollback(std::size_t d) {
+    void rollback(var_t d) {
         for (; !assign.assigned.empty(); assign.assigned.pop_back()) {
             auto &&var = assign.assigned.back();
             assert(var != 0);
             auto &&val = assign.variables[var];
             assert(val != 0);
-            if (std::abs(val) <= d)
+            if ((var_t)std::abs(val) <= d)
                 break;
 
             val = 0;
@@ -154,7 +154,7 @@ private:
             assert(var != nullptr);
             auto &&val = var->satisfied;
             assert(val != 0);
-            if (std::abs(val) <= d)
+            if ((var_t)std::abs(val) <= d)
                 break;
 
             val = 0;

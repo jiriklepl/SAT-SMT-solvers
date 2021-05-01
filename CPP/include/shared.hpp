@@ -9,6 +9,7 @@
 #include <unordered_set>
 
 using lit_t = std::int32_t;
+using var_t = std::make_unsigned_t<lit_t>;
 
 struct watch_tag;
 struct adjacency_tag;
@@ -27,10 +28,10 @@ struct Assignment {
     std::vector<lit_t> antecedents; // antecedents[0] stands for the the contradiction
 
     // list of assigned variables
-    std::vector<std::size_t> assigned;
+    std::vector<var_t> assigned;
 
     // set of unassigned variables
-    std::unordered_set<std::size_t> unassigned;
+    std::unordered_set<var_t> unassigned;
 };
 
 template<typename parent, typename V>
@@ -121,12 +122,14 @@ public:
 inline Solver::~Solver() {}
 
 template<typename tag>
-inline std::pair<std::vector<lit_t>, lit_t> clause1uip(const decltype(Assignment::antecedents) &antecedents, const decltype(Assignment::variables) &variables, const decltype(Cnf<tag>::clauses) &clauses, const decltype(Assignment::assigned) &assigned) {
+inline std::pair<std::vector<lit_t>, var_t> clause1uip(const decltype(Assignment::antecedents) &antecedents, const decltype(Assignment::variables) &variables, const decltype(Cnf<tag>::clauses) &clauses, const decltype(Assignment::assigned) &assigned) {
     std::vector<lit_t> others; // contains all literals l'@d' s.t. d' < d
     std::vector<bool> added(variables.size(), false);
 
-    auto d = variables[0]; // always positive
-    lit_t level = -1;
+    // TOOO: relearns knows clauses
+
+    var_t d = variables[0]; // always positive
+    var_t level = 0;
     std::size_t level_idx = 0;
     std::size_t last = 0;
 
@@ -134,8 +137,8 @@ inline std::pair<std::vector<lit_t>, lit_t> clause1uip(const decltype(Assignment
         auto &&clause = clauses[antecedents[0]];
 
         for (auto &&lit : clause) {
-            auto var = std::abs(lit.first);
-            auto other_d = std::abs(variables[var]);
+            var_t var = std::abs(lit.first);
+            var_t other_d = std::abs(variables[var]);
             added[var] = true;
 
             assert(other_d <= d);
@@ -163,7 +166,7 @@ inline std::pair<std::vector<lit_t>, lit_t> clause1uip(const decltype(Assignment
         if (last == 1)
             break;
 
-        auto var = *pivot;
+        var_t var = *pivot;
         auto ante = antecedents[var];
         --last;
 
@@ -172,8 +175,8 @@ inline std::pair<std::vector<lit_t>, lit_t> clause1uip(const decltype(Assignment
         auto &&clause = clauses[ante];
 
         for (auto &&lit : clause) {
-            auto other_var = std::abs(lit.first);
-            auto other_d = std::abs(variables[other_var]);
+            var_t other_var = std::abs(lit.first);
+            var_t other_d = std::abs(variables[other_var]);
 
             if (added[other_var])
                 continue;

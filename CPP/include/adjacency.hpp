@@ -76,8 +76,8 @@ public:
 
             for (auto &&l : c) {
                 cnf.literals[l_counter++] = l;
-                std::size_t var = (l > 0) ? l : -l;
-                if (var >= adjacency.size()) {
+                var_t var = (l > 0) ? l : -l;
+                if ((std::size_t)var >= adjacency.size()) {
                     adjacency.resize(2 * var);
                     assign.antecedents.resize(2 * var);
 
@@ -126,7 +126,7 @@ public:
     }
 
 private:
-    void update(lit_t variable, lit_t d, bool is_true, lit_t antecedent) {
+    void update(var_t variable, var_t d, bool is_true, lit_t antecedent) {
         assign.assigned.push_back(variable);
         assign.unassigned.erase(variable);
         assign.variables[variable] = is_true ? d : -d;
@@ -180,7 +180,7 @@ private:
         }
     }
 
-    void restore(std::size_t variable) {
+    void restore(var_t variable) {
         assert(variable != 0);
         for (auto &&a : adj.adjacency[variable]) {
             assert(a != 0);
@@ -192,17 +192,17 @@ private:
                 adj.adjacency[std::abs(l)].restore();
             }
 
-            assert(std::abs(*clause.end()) == variable);
+            assert((var_t)std::abs(*clause.end()) == variable);
             clause.restore();
         }
     }
 
-    void rollback(std::size_t d) {
+    void rollback(var_t d) {
         for (; !assign.assigned.empty(); assign.assigned.pop_back()) {
             auto var = assign.assigned.back();
             assert(var != 0);
             auto &&val = assign.variables[var];
-            if (std::abs(val) == d)
+            if ((var_t)std::abs(val) == d)
                 break;
 
             if (val != 0)
@@ -215,7 +215,7 @@ private:
         cnf.contra = false;
     }
 
-    bool unit_propag(lit_t d) {
+    bool unit_propag(var_t d) {
         for (;!cnf.contra && !cnf.units.empty();) {
             auto clause = *cnf.units.back();
             cnf.units.pop_back();
@@ -235,7 +235,7 @@ private:
         return !cnf.contra;
     }
 
-    bool solve(std::size_t d) {
+    bool solve(var_t d) {
         if (!unit_propag(d))
             return false;
 
