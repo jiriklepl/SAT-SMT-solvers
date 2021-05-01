@@ -2,6 +2,7 @@
 #define SHARED_HPP
 
 #include <cassert>
+#include <compare>
 #include <cstdint>
 #include <utility>
 #include <vector>
@@ -120,60 +121,90 @@ public:
 inline Solver::~Solver() {}
 
 template<typename tag>
-std::pair<std::vector<lit_t>, lit_t> clause1uip(const decltype(Assignment::antecedents) &antecedents, const decltype(Assignment::variables) &variables, const decltype(Cnf<tag>::clauses) &clauses) {
+inline std::pair<std::vector<lit_t>, lit_t> clause1uip(const decltype(Assignment::antecedents) &antecedents, const decltype(Assignment::variables) &variables, const decltype(Cnf<tag>::clauses) &clauses, const decltype(Assignment::assigned) &assigned) {
     std::vector<lit_t> others; // contains all literals l'@d' s.t. d' < d
-    std::vector<lit_t> last; // contains all literals l@d
+    std::vector<bool> added(variables.size(), false);
 
-    auto d = variables[0];
-    lit_t level = 0;
+    auto d = variables[0]; // always positive
+    lit_t level = -1;
+    std::size_t level_idx = 0;
+    std::size_t last = 0;
 
     {
-        const auto &&clause = clauses[antecedents[0]];
+        auto &&clause = clauses[antecedents[0]];
+
         for (auto &&lit : clause) {
-            auto var = std::abs(lit);
-            auto other_d = variables[var];
+            auto var = std::abs(lit.first);
+            auto other_d = std::abs(variables[var]);
+            added[var] = true;
+
+            assert(other_d <= d);
 
             if (other_d == d) {
-                last.push_back(lit);
+                ++last;
             } else {
-                if (other_d > level)
+                if (other_d > level) {
                     level = other_d;
+                    level_idx = others.size();
+                }
 
-                others.push_back(lit);
+                others.push_back(lit.first);
             }
         }
     }
 
-    while (last.size() > 1) {
-        auto lit = last.back();
-        auto var = std::abs(lit);
-        last.pop_back();
+    auto pivot = assigned.rbegin();
 
-        const auto &&clause = clauses[antecedents[var]];
+    for (;;++pivot) {
+        while (!added[*pivot])
+            ++pivot;
 
-        for (auto &&other_lit : clause) {
-            auto other_var = std::abs(other_lit);
+        assert(last >= 1);
+        if (last == 1)
+            break;
 
-            if (var == other_var)
-                continue; // resolution
+        auto var = *pivot;
+        auto ante = antecedents[var];
+        --last;
 
-            auto other_d = variables[other_var];
+        assert(ante != 0);
+
+        auto &&clause = clauses[ante];
+
+        for (auto &&lit : clause) {
+            auto other_var = std::abs(lit.first);
+            auto other_d = std::abs(variables[other_var]);
+
+            if (added[other_var])
+                continue;
+
+            added[other_var] = true;
+
+            assert(other_d <= d);
 
             if (other_d == d) {
-                last.push_back(other_lit);
+                ++last;
             } else {
-                if (other_d > level)
+                if (other_d > level) {
                     level = other_d;
+                    level_idx = others.size();
+                }
 
-                others.push_back(other_lit);
+                others.push_back(lit.first);
             }
         }
     }
 
-    // let's assert that the clause is assertive (using c asserts):
-    assert(last.size() == 1);
+    assert(last == 1);
+    assert(added[*pivot]);
 
-    others.push_back(last.back());
+    others.push_back(variables[*pivot] > 0 ? -*pivot : *pivot);
+
+    if (others.size() == 1)
+        level = 1;
+
+    if (level_idx > 0)
+        std::swap(others[level_idx], others[0]);
 
     return std::make_pair(std::move(others), level);
 }
