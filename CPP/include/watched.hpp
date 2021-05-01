@@ -27,7 +27,7 @@ public:
 
     Clause() noexcept = default;
     Clause(WatchHandle _start, WatchHandle _end, WatchedList &watched_list) noexcept
-        : start(_start), after(_end), w1(_start), w2(_end - 1), satisfied(0)
+        : start(_start), after(_end), w1(_end - 1), w2(_start), satisfied(0)
     {
         assert(start != nullptr);
         assert(after != nullptr);
@@ -141,7 +141,7 @@ public:
         return &clause - &clauses.front();
     }
 
-    void learn(const std::vector<lit_t> &clause, WatchedList &watched_list) {
+    Clause<watch_tag> &learn(const std::vector<lit_t> &clause, WatchedList &watched_list) {
         std::size_t end = literals.end() - literals.begin();
 
         if (literals.size() + clause.size() > literals.capacity()) {
@@ -162,8 +162,7 @@ public:
         }
 
         if (clauses.size() < clauses.capacity()) {
-            clauses.emplace_back(literals.data() + end, &*literals.end(), watched_list);
-            return;
+            return clauses.emplace_back(literals.data() + end, &*literals.end(), watched_list);
         }
 
         auto orig = clauses.data();
@@ -174,7 +173,10 @@ public:
                 clause = clause - orig + clauses.data();
         }
 
-        new (&clauses.back()) Clause<watch_tag>(literals.data() + end, &*literals.end(), watched_list);
+        for (auto &&clause : satisfied)
+            clause = clause - orig + clauses.data();
+
+        return *new (&clauses.back()) Clause<watch_tag>(literals.data() + end, &*literals.end(), watched_list);
     }
 
     std::vector<Clause<watch_tag>*> units;
@@ -236,9 +238,8 @@ public:
 
 private:
     bool unit_propag(lit_t d) {
-        for (; !cnf.contra && !cnf.units.empty();) {
-            auto clause = *cnf.units.back();
-            cnf.units.pop_back();
+        for (; !cnf.contra && !cnf.units.empty(); cnf.units.pop_back()) {
+            auto &&clause = *cnf.units.back();
             if (clause.satisfied > 0)
                 continue;
 
@@ -246,6 +247,7 @@ private:
             auto l = clause.get_watch();
 
             assert(l != 0);
+            assert(assign.variables[std::abs(l)] == 0);
 
             if (l > 0)
                 update(l, d, true, (std::size_t)(&clause - &cnf.clauses.front()));
