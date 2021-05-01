@@ -248,15 +248,17 @@ private:
         auto var = assign.unassigned.begin();
         auto val = *var;
 
+        bool first = rand() % 2 == 0;
+
         ++decided;
-        update(val, d + 1, true, 0);
+        update(val, d + 1, first, 0);
 
         if (solve(d + 1))
             return true;
         else
             rollback(d);
 
-        update(val, d + 1, false, 0);
+        update(val, d + 1, !first, 0);
 
         return solve(d + 1);
     }
