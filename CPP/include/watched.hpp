@@ -62,17 +62,19 @@ public:
                 if (w2 == w1)
                     continue;
 
+                auto tmp_var  = get_var(tmp);
+
                 assert(variables[get_var(w1)] == 0);
-                auto &&var_item = watched_list.watched_at[get_var(tmp)];
-                auto &&this_ref = watched_list.watched_at[get_var(tmp)][get_pos(tmp)];
+                auto &&var_item = watched_list.watched_at[tmp_var];
+                auto &&this_ref = watched_list.watched_at[tmp_var][get_pos(tmp)];
                 assert(this_ref == this);
 
                 if (&this_ref != &var_item.back()) {
                     std::swap(this_ref, var_item.back());
-                    if(get_var(tmp) == get_var(this_ref->w1)) {
+                    if(tmp_var == get_var(this_ref->w1)) {
                         get_pos(this_ref->w1) = get_pos(tmp);
                     } else {
-                        assert(get_var(tmp) == get_var(this_ref->w2));
+                        assert(tmp_var == get_var(this_ref->w2));
                         get_pos(this_ref->w2) = get_pos(tmp);
                     }
 
