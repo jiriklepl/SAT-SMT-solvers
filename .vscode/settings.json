@@ -1,6 +1,7 @@
 {
     "C_Cpp.default.cppStandard": "c++20",
     "cSpell.words": [
+        "CDCL",
         "DPLL",
         "Impls",
         "Repr",
