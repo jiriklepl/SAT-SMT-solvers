@@ -305,16 +305,17 @@ private:
             return true;
 
         auto val = *assign.unassigned.begin();
+        bool first = rand() % 2 == 0;
 
         ++decided;
-        update(val, d + 1, true, 0);
+        update(val, d + 1, first, 0);
 
         if (solve(d + 1))
             return true;
         else
             rollback(d);
 
-        update(val, d + 1, false, 0);
+        update(val, d + 1, !first, 0);
 
         if (solve(d + 1))
             return true;
