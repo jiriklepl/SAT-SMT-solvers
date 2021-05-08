@@ -1,0 +1,70 @@
+\documentclass[a4paper,12pt]{article} % This defines the style of your paper
+
+\usepackage[top = 2.5cm, bottom = 2.5cm, left = 2.5cm, right = 2.5cm]{geometry}
+
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}
+
+\usepackage{multirow}
+\usepackage{booktabs}
+
+\usepackage{amsmath}
+\usepackage{graphicx}
+
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+
+\usepackage{listings}
+\lstset{language=C}
+
+\newtheorem{definition}{Definition}
+\newtheorem{observation}{Observation}[definition]
+
+\usepackage{setspace}
+\setlength{\parindent}{0in}
+\setlength{\parskip}{.5em}
+
+\begin{document}
+
+\begin{center}
+    {\Large \bf Homework 8}
+    \vspace{2mm}
+
+    {\bf Jiří Klepl}
+
+\end{center}
+
+\vspace{0.4cm}
+
+We want to find out the worst-case time complexity of a conjunction of $m$ difference constraints on $n$ variables. The difference constraints are of the form $x_{k_i} - x_{l_i} \leq c_i$ with variables $x_{k_i}, x_{l_i}$ and a constant $c_i$ for each $i \in [m]$, where $k_i, l_i \in [n]$ and $k_i \neq l_i$.
+
+For the general simplex algorithm, we transform the problem into a conjunction of $m$ equality constraints $E$ and $m$ inequality constraints $I$ on $n+m$ variables. The equality constraints are of the form $\epsilon_i := x_{k_i} - x_{l_i} - x_{n + i} = 0$ and the inequality constraints of the form $\iota_i := s_i \leq c_i$, with variables $x_{k_i}, x_{l_i}, x_{n  + i}$ (we call $x_{n + i}$ a slack variable) and a constant $c_i$ for each $i \in [m]$, where $k_i, l_i \in [n]$ and $k_i \neq l_i$.
+
+We can also assume that $\forall i, j \in [m] : k_i \neq k_j \vee l_i \neq l_j$ (``there are no stronger and weaker versions of the same constraint'').
+
+Without loss of generality, we can add a requirement $\forall j \in [n] : \exists a \in [m] : j = k_a \lor j = l_a$ (``all variables are mentioned''). Otherwise, we pick a $j$ for which the existence predicate doesn't hold and we can formulate a new problem which has the same constants and slack variables, but where $k'_i = \text{if } k_i < i \text { then } k_i \text{ else } k_i - 1$ and $l'_i = \text{if } l_i < i \text { then } l_i \text{ else } l_i - 1$ for each $i \in [m]$. We consider these two problems equally hard.
+
+This requirement makes $n$ upper-bound to $2m$.
+
+Furthermore, we can add a requirement $\forall j \in [n] : \exists a, b \in [m] : j = k_a = l_b$ (``each variable is non-trivially constrained''). Otherwise, the constraints containing the variable $x_j$ are trivially solvable ($\in O(1)$ - setting variable $x_j$ doesn't break any constraint). The problems satisfying this extra requirement can be considered harder.
+
+This requirement makes $n$ upper-bound to $m$.
+
+Let $G = (X, V)$ denote the dependence graph, where $X$ is the set of all problem variables and $V = \{(x_{k_i}, x_{k_j}) | i, j \in [m] : k_i = l_j\}$. If there is a path from an $x_a$ to an $x_b$, we say that (an increase of) $x_b$ pushes $x_b$ and (a decrease of) $x_a$ pulls $x_a$. If $x_a$ and $x_b$ are strongly connected, we say they are co-dependent (both of their differences are bound).
+
+If the graph is disconnected, the algorithm doesn't propagate violations between its components and thus all such problems are easier. If the connected graph has multiple strongly connected components, then there exists a pair of components where one pushes the other (and the other one pulls the first one) and thus the violations propagate only one-way. These problems are easier as well.
+
+The hardest problems satisfy the requirement that $G$ is a strongly connected graph. We know that it has no loops and due to the previous requirements it has exactly $n$ vertices and $m$ edges. And we know that $\forall x \in X : d_{in}(x) \geq 1 \wedge d_{out}(x) \geq 1$.
+
+Due to the Brand's rule, we can be sure that if the algorithm pivots using $x_a$ as the first variable (the one violating its bounds) and $x_b$ as the other one then $\forall j \in [n]: j < a \to L_j  \leq x_j \leq U_j$ and $L_b < x_b < U_b$. So there is at least $a - 1$ variables within their bounds.
+
+We also know that, for each equation $\epsilon_i$ (where $i \in [m]$), at least one of the variables $x_{k_i}, x_{l_i}, x_{n+i}$ is non-basic while there is, out of $n + m$ variables in total, exactly $m$ basic variables and $n$ non-basic variables. And we know that none of the non-basic variables violate their bounds.
+
+We know that $m \geq n$ and so if we give all slack variable precedence over problem variables, the algorithm will attempt to express all problem variables using the slack variables. This also means that assuming an $x_j$ violates its bounds implies contradiction, because all slack variables satisfy their bounds and there are no additional bounds.
+
+So we know that the first pivoting variable in each step is always a slack variable.
+
+The maximum runtime complexity therefore is, due to all mechanisms involved and due to the Brand's rule, $\in O(m^2)$.
+
+\end{document}
