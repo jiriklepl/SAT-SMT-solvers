@@ -3,8 +3,70 @@
 
 #include "watched.hpp"
 
+class DeleteUseless {
+    std::size_t cache_limit = 100;
+    std::size_t dead_literals = 0;
+    std::vector<std::size_t> block_distances;
+
+    std::vector<bool> distance_register;
+    std::vector<std::size_t> distance_halver;
+
+    void register_clause(const std::vector<lit_t> &variables, const Clause<watch_tag> &clause)
+    {
+        std::size_t level = 0;
+
+        distance_register.clear();
+        distance_register.resize(std::abs(variables[clause.get_watch_var()]), false);
+
+        for (auto [lit, _pos] : clause) {
+            auto &&bit = distance_register[std::abs(variables[std::abs(lit)])];
+
+            if (bit)
+                continue;
+
+            ++level;
+            bit = true;
+        }
+
+        block_distances.emplace_back(level);
+    }
+
+    void delete_clauses()
+    {
+        if (block_distances.size() < cache_limit)
+            return;
+
+        std::size_t total = 0, current = 0, middle_dist = 0;
+        distance_halver.clear();
+        distance_halver.resize(distance_register.size(), 0);
+
+        for (auto &&dist : block_distances) {
+            ++total;
+            ++distance_halver[dist];
+        }
+
+        for (auto &&count : distance_halver) {
+            current += count;
+            ++middle_dist;
+
+            if (current * 2 >= total)
+                break;
+        }
+
+
+        for (auto &&dist : block_distances) {
+            if (dist > middle_dist) {
+                // TODO: remove
+            }
+        }
+    }
+};
+
 class SolverWatchedCDCL : public Solver {
+    static constexpr int unit_run = 100;
+
 public:
+    SolverWatchedCDCL() : cnf(), wch(), luby(), till_restart(unit_run) {}
     bool solve() override {
         return solve(1);
     }
@@ -46,11 +108,18 @@ public:
                 assign.unassigned.emplace(var);
             }
 
-            new (cnf.clauses.data() + c_counter) Clause<watch_tag>(cnf.literals.data() + clause_begin, cnf.literals.data() + l_counter, wch);
+            Clause<watch_tag> *clause =
+                new (cnf.clauses.data() + c_counter)
+                Clause<watch_tag>(cnf.literals.data() + clause_begin, cnf.literals.data() + l_counter, wch);
 
-            if (clause_begin == l_counter)
+            if (clause_begin + 1 == l_counter) {
+                cnf.units.emplace_back(clause);
+            } else if (clause_begin == l_counter) {
                 exit(20);
+            }
         }
+
+        original_clauses = cnf.clauses.size();
     }
 
 private:
@@ -114,6 +183,10 @@ private:
         }
     }
 
+    void delete_clauses() {
+
+    }
+
     bool solve(var_t d) {
         do {
             while (!unit_propag(d)) {
@@ -122,7 +195,18 @@ private:
                 auto [new_clause, a] = clause1uip<watch_tag>(assign.antecedents, assign.variables, cnf.clauses, assign.assigned);
 
                 auto &&clause = cnf.learn(new_clause, wch);
-                rollback(d = a);
+
+                if (till_restart-- > 0) {
+                    rollback(d = a);
+                } else {
+                    // RESTART
+                    till_restart = unit_run * *++luby;
+                    rollback(d = 1);
+                    delete_clauses();
+                }
+
+
+
                 cnf.units.push_back(&clause);
             }
 
@@ -165,7 +249,10 @@ private:
     }
 
     Cnf<watch_tag> cnf;
+    std::size_t original_clauses;
     WatchedList wch;
+    luby_generator<int> luby;
+    int till_restart;
 };
 
 #endif // WATCHED_CDCL_HPP
