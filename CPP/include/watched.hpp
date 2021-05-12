@@ -191,7 +191,7 @@ public:
 class SolverWatched : public Solver {
 public:
     bool solve() override {
-        return solve(0);
+        return solve(1);
     }
 
     // TODO: refactor this
@@ -231,10 +231,15 @@ public:
                 assign.unassigned.emplace(var);
             }
 
-            new (cnf.clauses.data() + c_counter) Clause<watch_tag>(cnf.literals.data() + clause_begin, cnf.literals.data() + l_counter, wch);
+            Clause<watch_tag> *clause =
+                new (cnf.clauses.data() + c_counter)
+                Clause<watch_tag>(cnf.literals.data() + clause_begin, cnf.literals.data() + l_counter, wch);
 
-            if (clause_begin == l_counter)
+            if (clause_begin + 1 == l_counter) {
+                cnf.units.emplace_back(clause);
+            } else if (clause_begin == l_counter) {
                 exit(20);
+            }
         }
     }
 
@@ -319,12 +324,7 @@ private:
 
         update(val, d + 1, !first, 0);
 
-        if (solve(d + 1))
-            return true;
-        else
-            rollback(d);
-
-        return false;
+        return solve(d + 1);
     }
 
     void rollback(var_t d) {
