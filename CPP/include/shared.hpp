@@ -121,6 +121,17 @@ public:
 
 inline Solver::~Solver() {}
 
+
+/**
+ * @brief
+ *
+ * @tparam tag
+ * @param antecedents
+ * @param variables
+ * @param clauses
+ * @param assigned
+ * @return std::pair<std::vector<lit_t>, var_t> returned vector is the clause to learn, the last element is the variable with the highest decision level and the penultimate one is the literal with the second highest decision level
+ */
 template<typename tag>
 inline std::pair<std::vector<lit_t>, var_t> clause1uip(const decltype(Assignment::antecedents) &antecedents, const decltype(Assignment::variables) &variables, const decltype(Cnf<tag>::clauses) &clauses, const decltype(Assignment::assigned) &assigned) {
     std::vector<lit_t> others; // contains all literals l'@d' s.t. d' < d
@@ -211,5 +222,24 @@ inline std::pair<std::vector<lit_t>, var_t> clause1uip(const decltype(Assignment
 
     return std::make_pair(std::move(others), level);
 }
+
+// http://oeis.org/A182105
+template<typename Int>
+class luby_generator {
+public:
+    constexpr luby_generator() noexcept : u(1), v(1) {}
+    Int& operator*() noexcept { return v; }
+    const Int& operator*() const noexcept { return v; }
+    luby_generator &operator++() noexcept {
+        if ((u & -u) == v)
+            u += v = 1;
+        else
+            v <<= 1;
+
+        return *this;
+    }
+private:
+    Int u, v;
+};
 
 #endif // SHARED_HPP
