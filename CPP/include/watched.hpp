@@ -48,6 +48,8 @@ public:
     value_t *end() { return after; }
     const value_t *end() const { return after; }
 
+    std::size_t size() const { return after - start; }
+
     bool update(const std::vector<lit_t> &variables, WatchedList &watched_list) noexcept {
         if (variables[get_var(w1)] * get_lit(w1) > 0)
             return true;
