@@ -8,6 +8,7 @@
 #include "dimacs.hpp"
 #include "satlib.hpp"
 #include "watched.hpp"
+#include "watched_sep.hpp"
 #include "watched_cdcl.hpp"
 #include "adjacency.hpp"
 
@@ -30,6 +31,7 @@ int main(int, const char *argv[])
     enum {
         ADJACENCY,
         WATCHED,
+        WATCHED_SEP,
         CDCL_WATCHED
     } solver_type = CDCL_WATCHED;
 
@@ -50,6 +52,8 @@ int main(int, const char *argv[])
                 solver_type = ADJACENCY;
             } else if (*arg == "-w"s || *arg == "--watched"s) {
                 solver_type = WATCHED;
+            } else if (*arg == "-ws"s || *arg == "--watched_sep"s) {
+                solver_type = WATCHED_SEP;
             } else {
                 std::cerr << "Unknown option: " << *arg << std::endl;
                 usage(std::cerr);
@@ -89,6 +93,9 @@ int main(int, const char *argv[])
     break;
     case WATCHED:
         solver = std::make_unique<SolverWatched>();
+    break;
+    case WATCHED_SEP:
+        solver = std::make_unique<SolverWatchedSep>();
     break;
     case CDCL_WATCHED:
         solver = std::make_unique<SolverWatchedCDCL>();

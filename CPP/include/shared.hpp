@@ -12,6 +12,7 @@ using lit_t = std::int32_t;
 using var_t = std::make_unsigned_t<lit_t>;
 
 struct watch_tag;
+struct watch_sep_tag;
 struct adjacency_tag;
 
 template<typename> class Clause;
