@@ -94,7 +94,7 @@ public:
                         adjacency[var].erase(new_it.first);
 
                         --c_counter;
-                        l_counter  = clause_begin;
+                        l_counter = clause_begin;
                         goto skip_clause;
                     }
                 } else {
@@ -103,6 +103,10 @@ public:
             }
 
             cnf.clauses[c_counter] = Clause<adjacency_tag>(cnf.literals.data() + clause_begin, cnf.literals.data() + l_counter);
+
+            if (cnf.clauses[c_counter].size() == 1)
+                cnf.units.push_back(&cnf.clauses[c_counter]);
+
             skip_clause:;
         }
 
