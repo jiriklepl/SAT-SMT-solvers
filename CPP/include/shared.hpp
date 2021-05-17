@@ -131,25 +131,30 @@ inline Solver::~Solver() {}
  * @param variables
  * @param clauses
  * @param assigned
- * @return std::pair<std::vector<lit_t>, var_t> returned vector is the clause to learn, the last element is the variable with the highest decision level and the penultimate one is the literal with the second highest decision level
+ * @return the returned vector is the clause to learn, the last element is the variable with the highest decision level and the penultimate one is the literal with the second highest decision level
  */
 template<typename tag>
-inline std::pair<std::vector<lit_t>, var_t> clause1uip(const decltype(Assignment::antecedents) &antecedents, const decltype(Assignment::variables) &variables, const decltype(Cnf<tag>::clauses) &clauses, const decltype(Assignment::assigned) &assigned) {
-    std::vector<lit_t> others; // contains all literals l'@d' s.t. d' < d
-    std::vector<bool> added(variables.size(), false);
+inline auto clause1uip(const decltype(Assignment::antecedents) &antecedents, const decltype(Assignment::variables) &variables, const decltype(Cnf<tag>::clauses) &clauses, const decltype(Assignment::assigned) &assigned) {
+    using value_t = typename Clause<tag>::value_t;
 
-    // TOOO: relearns knows clauses
+    const var_t d = variables[0]; // always positive
 
-    var_t d = variables[0]; // always positive
-    var_t level = 0;
+    std::pair<std::vector<value_t>, var_t> return_v = {{}, 0};
+    auto &&[others, level] = return_v;
+    // others: contains all literals l'@d' s.t. d' < d
+
     std::size_t level_idx = 0;
+
+    std::vector<bool> added(variables.size(), false);
     std::size_t last = 0;
+
+    // TOOO: relearns known clauses
 
     {
         auto &&clause = clauses[antecedents[0]];
 
-        for (auto &&lit : clause) {
-            var_t var = std::abs(lit.first);
+        for (auto &&[lit, _pos] : clause) {
+            var_t var = std::abs(lit);
             var_t other_d = std::abs(variables[var]);
             added[var] = true;
 
@@ -163,7 +168,7 @@ inline std::pair<std::vector<lit_t>, var_t> clause1uip(const decltype(Assignment
                     level_idx = others.size();
                 }
 
-                others.push_back(lit.first);
+                others.emplace_back(lit, 0);
             }
         }
     }
@@ -186,8 +191,8 @@ inline std::pair<std::vector<lit_t>, var_t> clause1uip(const decltype(Assignment
 
         auto &&clause = clauses[ante];
 
-        for (auto &&lit : clause) {
-            var_t other_var = std::abs(lit.first);
+        for (auto &&[lit, _pos] : clause) {
+            var_t other_var = std::abs(lit);
             var_t other_d = std::abs(variables[other_var]);
 
             if (added[other_var])
@@ -205,7 +210,7 @@ inline std::pair<std::vector<lit_t>, var_t> clause1uip(const decltype(Assignment
                     level_idx = others.size();
                 }
 
-                others.push_back(lit.first);
+                others.emplace_back(lit, 0);
             }
         }
     }
@@ -213,7 +218,7 @@ inline std::pair<std::vector<lit_t>, var_t> clause1uip(const decltype(Assignment
     assert(last == 1);
     assert(added[*pivot]);
 
-    others.push_back(variables[*pivot] > 0 ? -*pivot : *pivot);
+    others.emplace_back(variables[*pivot] > 0 ? -*pivot : *pivot, 0);
 
     if (others.size() == 1)
         level = 1;
@@ -221,7 +226,7 @@ inline std::pair<std::vector<lit_t>, var_t> clause1uip(const decltype(Assignment
     if (level_idx > 0)
         std::swap(others[level_idx], others[0]);
 
-    return std::make_pair(std::move(others), level);
+    return return_v;
 }
 
 // http://oeis.org/A182105

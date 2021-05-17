@@ -10,6 +10,7 @@
 #include "watched.hpp"
 #include "watched_sep.hpp"
 #include "watched_cdcl.hpp"
+#include "watched_sep_cdcl.hpp"
 #include "adjacency.hpp"
 
 void usage(std::ostream &out) {
@@ -32,7 +33,8 @@ int main(int, const char *argv[])
         ADJACENCY,
         WATCHED,
         WATCHED_SEP,
-        CDCL_WATCHED
+        CDCL_WATCHED_SEP,
+        CDCL_WATCHED,
     } solver_type = CDCL_WATCHED;
 
     for (const char** arg = argv + 1; *arg != nullptr; ++arg) {
@@ -54,6 +56,8 @@ int main(int, const char *argv[])
                 solver_type = WATCHED;
             } else if (*arg == "-ws"s || *arg == "--watched_sep"s) {
                 solver_type = WATCHED_SEP;
+            } else if (*arg == "-cs"s || *arg == "--watched_cdcl_sep"s) {
+                solver_type = CDCL_WATCHED_SEP;
             } else {
                 std::cerr << "Unknown option: " << *arg << std::endl;
                 usage(std::cerr);
@@ -96,6 +100,9 @@ int main(int, const char *argv[])
     break;
     case WATCHED_SEP:
         solver = std::make_unique<SolverWatchedSep>();
+    break;
+    case CDCL_WATCHED_SEP:
+        solver = std::make_unique<SolverWatchedSepCDCL>();
     break;
     case CDCL_WATCHED:
         solver = std::make_unique<SolverWatchedCDCL>();

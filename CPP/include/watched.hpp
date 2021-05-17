@@ -145,13 +145,13 @@ public:
         return &clause - &clauses.front();
     }
 
-    Clause<watch_tag> &learn(const std::vector<lit_t> &clause, WatchedList &watched_list) {
+    Clause<watch_tag> &learn(std::vector<Clause<watch_tag>::value_t> &&clause, WatchedList &watched_list) {
         std::size_t end = literals.end() - literals.begin();
 
         if (literals.size() + clause.size() > literals.capacity()) {
             auto orig = literals.data();
 
-            for (auto &&lit : clause)
+            for (auto &&[lit, _pos] : clause)
                 literals.emplace_back(lit, 0);
 
             for (auto &&clause : clauses) {
@@ -161,7 +161,7 @@ public:
                 clause.w2 = clause.w2 - orig + literals.data();
             }
         } else {
-            for (auto &&lit : clause)
+            for (auto &&[lit, _pos] : clause)
                 literals.emplace_back(lit, 0);
         }
 

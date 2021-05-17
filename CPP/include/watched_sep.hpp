@@ -29,6 +29,8 @@ class Clause<watch_sep_tag> {
     friend Cnf<watch_sep_tag>;
 
 public:
+    using value_t = LiteralHandle;
+
     Clause() noexcept = default;
     Clause(std::vector<LiteralHandle> &&_literals, WatchedSepList &watched_list) noexcept
         : literals(std::move(_literals)), w1(&literals.back()), w2(&literals.front()), satisfied(0)
