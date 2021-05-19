@@ -1,6 +1,7 @@
 #ifndef WATCHED_SEP_HPP
 #define WATCHED_SEP_HPP
 
+#include <array>
 #include <cassert>
 #include <vector>
 #include <memory>
@@ -85,7 +86,7 @@ public:
                         this_ref->w2->pos = tmp->pos;
                     }
 
-                    assert(this_ref->size() || this_ref->w1 != this_ref->w2);
+                    assert(this_ref->size() == 1 || this_ref->w1 != this_ref->w2);
                     assert(watched_list.watched_at[this_ref->w1->var()][this_ref->w1->pos] == this_ref);
                     assert(watched_list.watched_at[this_ref->w2->var()][this_ref->w2->pos] == this_ref);
                 }
@@ -170,6 +171,51 @@ public:
             clause = clause - orig + clauses.data();
 
         return *new (&clauses.back()) Clause<watch_sep_tag>(std::move(literals), watched_list);
+    }
+
+    void unlearn(std::size_t index, WatchedSepList &watched_list) {
+        Clause<watch_sep_tag> &clause = clauses[index];
+        std::array<LiteralHandle, 2> watches{*clause.w1, *clause.w2};
+
+        for (auto &&lit_handle : watches) {
+            auto var = lit_handle.var();
+            auto &&var_item = watched_list.watched_at[var];
+            auto &&this_ref = var_item[lit_handle.pos];
+
+            assert(this_ref == &clause);
+
+            if (this_ref != var_item.back()) {
+                std::swap(this_ref, var_item.back());
+
+                if(var == this_ref->w1->var()) {
+                    this_ref->w1->pos = lit_handle.pos;
+                } else {
+                    assert(var == this_ref->w2->var());
+                    this_ref->w2->pos = lit_handle.pos;
+                }
+
+                assert(this_ref->size() == 1 || this_ref->w1 != this_ref->w2);
+                assert(watched_list.watched_at[this_ref->w1->var()][this_ref->w1->pos] == this_ref);
+                assert(watched_list.watched_at[this_ref->w2->var()][this_ref->w2->pos] == this_ref);
+            }
+
+            var_item.pop_back();
+        }
+
+        if (&clause != &clauses.back()) {
+            std::swap(clause, clauses.back());
+            std::array<LiteralHandle, 2> watches{*clause.w1, *clause.w2};
+
+            for (auto &&lit_handle : watches) {
+                auto var = lit_handle.var();
+
+                assert(watched_list.watched_at[var][lit_handle.pos] == &clauses.back());
+
+                watched_list.watched_at[var][lit_handle.pos] = &clause;
+            }
+        }
+
+        clauses.pop_back();
     }
 
     std::vector<Clause<watch_sep_tag>*> units;
