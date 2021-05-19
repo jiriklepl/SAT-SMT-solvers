@@ -5,6 +5,7 @@
 #include <compare>
 #include <cstdint>
 #include <utility>
+#include <variant>
 #include <vector>
 #include <unordered_set>
 
@@ -126,29 +127,31 @@ inline Solver::~Solver() {}
 /**
  * @brief
  *
- * @tparam tag
+ * @tparam Tag
  * @param antecedents
  * @param variables
  * @param clauses
  * @param assigned
  * @return the returned vector is the clause to learn, the last element is the variable with the highest decision level and the penultimate one is the literal with the second highest decision level
  */
-template<typename tag>
-inline auto clause1uip(const decltype(Assignment::antecedents) &antecedents, const decltype(Assignment::variables) &variables, const decltype(Cnf<tag>::clauses) &clauses, const decltype(Assignment::assigned) &assigned) {
-    using value_t = typename Clause<tag>::value_t;
+template<typename Tag>
+inline auto clause1uip(
+    const decltype(Assignment::antecedents) &antecedents,
+    const decltype(Assignment::variables) &variables,
+    const decltype(Cnf<Tag>::clauses) &clauses,
+    const decltype(Assignment::assigned) &assigned
+) {
+    using value_t = typename Clause<Tag>::value_t;
 
     const var_t d = variables[0]; // always positive
 
     std::pair<std::vector<value_t>, var_t> return_v = {{}, 0};
-    auto &&[others, level] = return_v;
-    // others: contains all literals l'@d' s.t. d' < d
+    auto &&[others, level] = return_v; // others: contains all literals l'@d' s.t. d' < d
 
     std::size_t level_idx = 0;
 
     std::vector<bool> added(variables.size(), false);
     std::size_t last = 0;
-
-    // TODO: relearns known clauses
 
     {
         auto &&clause = clauses[antecedents[0]];
