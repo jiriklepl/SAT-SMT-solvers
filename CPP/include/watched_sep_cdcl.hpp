@@ -16,7 +16,7 @@ public:
         std::size_t level = 0;
 
         distance_register.clear();
-        distance_register.resize(std::abs(variables[clause.get_watch_var()]), false);
+        distance_register.resize(std::abs(variables[clause.get_watch_var()]) + 1, false);
 
         for (auto [lit, _pos] : clause) {
             auto &&bit = distance_register[std::abs(variables[std::abs(lit)])];
@@ -27,6 +27,8 @@ public:
             ++level;
             bit = true;
         }
+
+        assert(distance_register.back());
 
         block_distances.emplace_back(level);
     }
@@ -39,12 +41,23 @@ public:
 
         std::size_t total = 0, current = 0, middle_dist = 0;
         distance_halfer.clear();
-        distance_halfer.resize(distance_register.size(), 0);
+
+        std::size_t max_dist = 0;
+        for (auto &&dist : block_distances) {
+            if (dist > max_dist)
+                max_dist = dist;
+        }
+
+        distance_halfer.resize(max_dist + 1, 0);
 
         for (auto &&dist : block_distances) {
+            assert(dist < distance_halfer.size());
+
             ++total;
             ++distance_halfer[dist];
         }
+
+        assert(distance_halfer.back() != 0);
 
         for (auto &&count : distance_halfer) {
             current += count;
@@ -57,8 +70,8 @@ public:
 
         auto end = block_distances.end();
         for (auto it = block_distances.begin(); it != end;) {
-            if (*it < middle_dist) {
-                cnf.unlearn(it - block_distances.begin() + original_clauses, wch);
+            if (*it > middle_dist) {
+                cnf.unlearn(it - block_distances.begin() + original_clauses -1, wch);
 
                 if (it != --end)
                     std::swap(*it, *end);
@@ -204,8 +217,8 @@ private:
             while (!unit_propag(d)) {
                 if (d == 1)
                     return false;
-                auto [new_clause, a] = clause1uip<watch_sep_tag>(assign.antecedents, assign.variables, cnf.clauses, assign.assigned);
 
+                auto [new_clause, a] = clause1uip<watch_sep_tag>(assign.antecedents, assign.variables, cnf.clauses, assign.assigned);
                 auto &&clause = cnf.learn(std::move(new_clause), wch);
                 delete_useless.register_clause(assign.variables, clause);
 
