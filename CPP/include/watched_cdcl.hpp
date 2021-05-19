@@ -133,8 +133,8 @@ private:
             while (!unit_propag(d)) {
                 if (d == 1)
                     return false;
-                auto [new_clause, a] = clause1uip<watch_tag>(assign.antecedents, assign.variables, cnf.clauses, assign.assigned);
 
+                auto [new_clause, a] = clause1uip<watch_tag>(assign.antecedents, assign.variables, cnf.clauses, assign.assigned);
                 auto &&clause = cnf.learn(std::move(new_clause), wch);
 
                 if (till_restart-- > 0) {
