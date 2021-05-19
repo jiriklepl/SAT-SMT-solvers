@@ -50,6 +50,32 @@ public:
 
     std::size_t size() const { return after - start; }
 
+    void remove(std::pair<lit_t, std::size_t> *lit_handle, WatchedList &watched_list) noexcept {
+
+        var_t var  = get_var(lit_handle);
+
+        auto &&var_item = watched_list.watched_at[var];
+        auto &&this_ref = watched_list.watched_at[var][get_pos(lit_handle)];
+
+        assert(this_ref == this);
+
+        if (&this_ref != &var_item.back()) {
+            std::swap(this_ref, var_item.back());
+            if(var == get_var(this_ref->w1)) {
+                get_pos(this_ref->w1) = get_pos(lit_handle);
+            } else {
+                assert(var == get_var(this_ref->w2));
+                get_pos(this_ref->w2) = get_pos(lit_handle);
+            }
+
+            assert(size() == 1 || this_ref->w1 != this_ref->w2);
+            assert(watched_list.watched_at[get_var(this_ref->w1)][get_pos(this_ref->w1)] == this_ref);
+            assert(watched_list.watched_at[get_var(this_ref->w2)][get_pos(this_ref->w2)] == this_ref);
+        }
+
+        var_item.pop_back();
+    }
+
     bool update(const std::vector<lit_t> &variables, WatchedList &watched_list) noexcept {
         if (variables[get_var(w1)] * get_lit(w1) > 0)
             return true;
@@ -64,28 +90,9 @@ public:
                 if (w2 == w1)
                     continue;
 
-                auto tmp_var  = get_var(tmp);
-
                 assert(variables[get_var(w1)] == 0);
-                auto &&var_item = watched_list.watched_at[tmp_var];
-                auto &&this_ref = watched_list.watched_at[tmp_var][get_pos(tmp)];
-                assert(this_ref == this);
 
-                if (&this_ref != &var_item.back()) {
-                    std::swap(this_ref, var_item.back());
-                    if(tmp_var == get_var(this_ref->w1)) {
-                        get_pos(this_ref->w1) = get_pos(tmp);
-                    } else {
-                        assert(tmp_var == get_var(this_ref->w2));
-                        get_pos(this_ref->w2) = get_pos(tmp);
-                    }
-
-                    assert(this_ref->after - this_ref->start == 1 || this_ref->w1 != this_ref->w2);
-                    assert(watched_list.watched_at[get_var(this_ref->w1)][get_pos(this_ref->w1)] == this_ref);
-                    assert(watched_list.watched_at[get_var(this_ref->w2)][get_pos(this_ref->w2)] == this_ref);
-                }
-
-                var_item.pop_back();
+                remove(tmp, watched_list);
 
                 get_pos(w2) = watched_list.watched_at[get_var(w2)].size();
                 watched_list.watched_at[get_var(w2)].emplace_back(this);
@@ -93,14 +100,14 @@ public:
             } else if (variables[get_var(w2)] * get_lit(w2) > 0) {
                 w2 = tmp;
 
-                assert(after - start == 1 || w1 != w2);
+                assert(size() == 1 || w1 != w2);
                 assert(watched_list.watched_at[get_var(w1)][get_pos(w1)] == this);
                 assert(watched_list.watched_at[get_var(w2)][get_pos(w2)] == this);
                 return true;
             }
         }
 
-        assert(after - start == 1 || w1 != w2);
+        assert(size() == 1 || w1 != w2);
         assert(watched_list.watched_at[get_var(w1)][get_pos(w1)] == this);
         assert(watched_list.watched_at[get_var(w2)][get_pos(w2)] == this);
         assert((variables[get_var(w1)] == 0) || (variables[get_var(w2)] != 0));

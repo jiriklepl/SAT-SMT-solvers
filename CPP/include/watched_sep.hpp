@@ -56,6 +56,32 @@ public:
 
     std::size_t size() const noexcept { return literals.size(); }
 
+    void remove(LiteralHandle *lit_handle, WatchedSepList &watched_list) noexcept {
+
+        var_t var  = lit_handle->var();
+
+        auto &&var_item = watched_list.watched_at[var];
+        auto &&this_ref = watched_list.watched_at[var][lit_handle->pos];
+
+        assert(this_ref == this);
+
+        if (&this_ref != &var_item.back()) {
+            std::swap(this_ref, var_item.back());
+            if(var == this_ref->w1->var()) {
+                this_ref->w1->pos = lit_handle->pos;
+            } else {
+                assert(var == this_ref->w2->var());
+                this_ref->w2->pos = lit_handle->pos;
+            }
+
+            assert(size() == 1 || this_ref->w1 != this_ref->w2);
+            assert(watched_list.watched_at[this_ref->w1->var()][this_ref->w1->pos] == this_ref);
+            assert(watched_list.watched_at[this_ref->w2->var()][this_ref->w2->pos] == this_ref);
+        }
+
+        var_item.pop_back();
+    }
+
     bool update(const std::vector<lit_t> &variables, WatchedSepList &watched_list) noexcept {
         if (variables[w1->var()] * w1->lit > 0)
             return true;
@@ -70,28 +96,9 @@ public:
                 if (w2 == w1)
                     continue;
 
-                auto tmp_var  = tmp->var();
-
                 assert(variables[w1->var()] == 0);
-                auto &&var_item = watched_list.watched_at[tmp_var];
-                auto &&this_ref = watched_list.watched_at[tmp_var][tmp->pos];
-                assert(this_ref == this);
 
-                if (&this_ref != &var_item.back()) {
-                    std::swap(this_ref, var_item.back());
-                    if(tmp_var == this_ref->w1->var()) {
-                        this_ref->w1->pos = tmp->pos;
-                    } else {
-                        assert(tmp_var == this_ref->w2->var());
-                        this_ref->w2->pos = tmp->pos;
-                    }
-
-                    assert(this_ref->size() == 1 || this_ref->w1 != this_ref->w2);
-                    assert(watched_list.watched_at[this_ref->w1->var()][this_ref->w1->pos] == this_ref);
-                    assert(watched_list.watched_at[this_ref->w2->var()][this_ref->w2->pos] == this_ref);
-                }
-
-                var_item.pop_back();
+                remove(tmp, watched_list);
 
                 w2->pos = watched_list.watched_at[w2->var()].size();
                 watched_list.watched_at[w2->var()].emplace_back(this);
@@ -177,30 +184,8 @@ public:
         Clause<watch_sep_tag> &clause = clauses[index];
         std::array<LiteralHandle, 2> watches{*clause.w1, *clause.w2};
 
-        for (auto &&lit_handle : watches) {
-            auto var = lit_handle.var();
-            auto &&var_item = watched_list.watched_at[var];
-            auto &&this_ref = var_item[lit_handle.pos];
-
-            assert(this_ref == &clause);
-
-            if (this_ref != var_item.back()) {
-                std::swap(this_ref, var_item.back());
-
-                if(var == this_ref->w1->var()) {
-                    this_ref->w1->pos = lit_handle.pos;
-                } else {
-                    assert(var == this_ref->w2->var());
-                    this_ref->w2->pos = lit_handle.pos;
-                }
-
-                assert(this_ref->size() == 1 || this_ref->w1 != this_ref->w2);
-                assert(watched_list.watched_at[this_ref->w1->var()][this_ref->w1->pos] == this_ref);
-                assert(watched_list.watched_at[this_ref->w2->var()][this_ref->w2->pos] == this_ref);
-            }
-
-            var_item.pop_back();
-        }
+        for (auto &&lit_handle : watches)
+            clause.remove(&lit_handle, watched_list);
 
         if (&clause != &clauses.back()) {
             std::swap(clause, clauses.back());
