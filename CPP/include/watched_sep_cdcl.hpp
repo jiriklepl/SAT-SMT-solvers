@@ -4,12 +4,14 @@
 #include "watched_sep.hpp"
 
 class DeleteUseless {
-    std::size_t cache_limit = 100;
+    std::size_t cache_limit = 1000;
     std::vector<std::size_t> block_distances;
 
+    // caches:
     std::vector<bool> distance_register;
     std::vector<std::size_t> distance_halfer;
 
+public:
     void register_clause(const std::vector<lit_t> &variables, const Clause<watch_sep_tag> &clause) {
         std::size_t level = 0;
 
@@ -29,9 +31,11 @@ class DeleteUseless {
         block_distances.emplace_back(level);
     }
 
-    void delete_clauses() {
+    void delete_clauses(Cnf<watch_sep_tag> &cnf, WatchedSepList &wch, std::size_t original_clauses) {
         if (block_distances.size() < cache_limit)
             return;
+
+        cache_limit *= 2; // FIXME: discuss with lectures
 
         std::size_t total = 0, current = 0, middle_dist = 0;
         distance_halfer.clear();
@@ -44,16 +48,26 @@ class DeleteUseless {
 
         for (auto &&count : distance_halfer) {
             current += count;
-            ++middle_dist;
 
             if (current * 2 >= total)
                 break;
+
+            ++middle_dist;
         }
 
+        auto end = block_distances.end();
+        for (auto it = block_distances.begin(); it != end;) {
+            if (*it < middle_dist) {
+                cnf.unlearn(it - block_distances.begin() + original_clauses, wch);
 
-        for (auto &&dist : block_distances) {
-            if (dist > middle_dist) {
-                // TODO: remove
+                if (it != --end)
+                    std::swap(*it, *end);
+
+                assert(&*end == &block_distances.back());
+
+                block_distances.pop_back();
+            } else {
+                ++it;
             }
         }
     }
@@ -85,6 +99,7 @@ public:
             total_size += c.size();
 
         cnf.clauses.resize(list.size() + 1);
+        original_clauses = cnf.clauses.size();
 
         std::size_t c_counter = 0;
         for (auto &&c : list) {
@@ -177,7 +192,11 @@ private:
     }
 
     void delete_clauses() {
+        delete_useless.delete_clauses(cnf, wch, original_clauses);
 
+        for (auto it = cnf.clauses.begin() + 1; it != cnf.clauses.end(); ++it)
+            if (it->is_unit(assign.variables))
+                cnf.units.push_back(&*it);
     }
 
     bool solve(var_t d) {
@@ -188,19 +207,17 @@ private:
                 auto [new_clause, a] = clause1uip<watch_sep_tag>(assign.antecedents, assign.variables, cnf.clauses, assign.assigned);
 
                 auto &&clause = cnf.learn(std::move(new_clause), wch);
+                delete_useless.register_clause(assign.variables, clause);
 
                 if (till_restart-- > 0) {
                     rollback(d = a);
+                    cnf.units.push_back(&clause);
                 } else {
                     // RESTART
                     till_restart = unit_run * *++luby;
                     rollback(d = 1);
                     delete_clauses();
                 }
-
-
-
-                cnf.units.push_back(&clause);
             }
 
             if (assign.unassigned.empty())
@@ -245,6 +262,7 @@ private:
     std::size_t original_clauses;
     WatchedSepList wch;
     luby_generator<int> luby;
+    DeleteUseless delete_useless;
     int till_restart;
 };
 
