@@ -8,10 +8,9 @@ class DeleteUseless {
     std::vector<std::size_t> block_distances;
 
     std::vector<bool> distance_register;
-    std::vector<std::size_t> distance_halver;
+    std::vector<std::size_t> distance_halfer;
 
-    void register_clause(const std::vector<lit_t> &variables, const Clause<watch_sep_tag> &clause)
-    {
+    void register_clause(const std::vector<lit_t> &variables, const Clause<watch_sep_tag> &clause) {
         std::size_t level = 0;
 
         distance_register.clear();
@@ -30,21 +29,20 @@ class DeleteUseless {
         block_distances.emplace_back(level);
     }
 
-    void delete_clauses()
-    {
+    void delete_clauses() {
         if (block_distances.size() < cache_limit)
             return;
 
         std::size_t total = 0, current = 0, middle_dist = 0;
-        distance_halver.clear();
-        distance_halver.resize(distance_register.size(), 0);
+        distance_halfer.clear();
+        distance_halfer.resize(distance_register.size(), 0);
 
         for (auto &&dist : block_distances) {
             ++total;
-            ++distance_halver[dist];
+            ++distance_halfer[dist];
         }
 
-        for (auto &&count : distance_halver) {
+        for (auto &&count : distance_halfer) {
             current += count;
             ++middle_dist;
 
@@ -66,6 +64,7 @@ class SolverWatchedSepCDCL : public Solver {
 
 public:
     SolverWatchedSepCDCL() : cnf(), wch(), luby(), till_restart(unit_run) {}
+
     bool solve() override {
         return solve(1);
     }

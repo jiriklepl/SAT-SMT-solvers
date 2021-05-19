@@ -148,7 +148,7 @@ inline auto clause1uip(const decltype(Assignment::antecedents) &antecedents, con
     std::vector<bool> added(variables.size(), false);
     std::size_t last = 0;
 
-    // TOOO: relearns known clauses
+    // TODO: relearns known clauses
 
     {
         auto &&clause = clauses[antecedents[0]];
