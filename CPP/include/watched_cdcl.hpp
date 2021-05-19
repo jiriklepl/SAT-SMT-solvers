@@ -139,16 +139,13 @@ private:
 
                 if (till_restart-- > 0) {
                     rollback(d = a);
+                    cnf.units.push_back(&clause);
                 } else {
                     // RESTART
                     till_restart = unit_run * *++luby;
                     rollback(d = 1);
                     delete_clauses();
                 }
-
-
-
-                cnf.units.push_back(&clause);
             }
 
             if (assign.unassigned.empty())
