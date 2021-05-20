@@ -1,4 +1,68 @@
-# Programming tasks
+# CDCL
+
+The implementation can read a file in SATLIB or DIMACS format. It can deduce the format from the extension of the file name. The format can be enforced by using either `-c, --dimacs` option, or `-s, --satlib` options, this also allows the program to read from the standard input.
+
+## Modes
+
+- `ADJACENCY`: uses the DPLL algorithm with adjacency lists.
+- `WATCHED`: uses the DPLL algorithm with watched literals (and stores clause literals in a contiguous manner).
+- `WATCHED_SEP`: uses the DPLL algorithm with watched literals (and stores clauses separately).
+- `CDCL_WATCHED`: uses the CDCL algorithm with watched literals and restarts after an amount of contradictions given by the luby sequence multiplied by the *unit run* variable.
+- `CDCL_WATCHED_SEP`: uses the CDCL algorithm with watched literals, clauses stored separately, restarts after an amount of contradictions given by the luby sequence multiplied by the *unit run* variable, and removing a half of the learned clauses if the cache, initially set to the *cache limit* variable (the cache doubles after each removal wave), is full.
+
+## Variables
+
+- **unit run**: the multiplier used for computing the length of runs given by the luby sequence. The default value is `100`.
+- **cache limit**: the initial size of cache for learned clauses. The default value is `10'000`.
+
+## Build
+
+The following command builds the release version of the CDCL program (`bin/main`):
+
+```sh
+make release
+```
+
+The following command will build the debug version of the CDCL program (`debug/main`) with extra assertions in the code ensuring the program works as intended and satisfies all invariants:
+
+```sh
+make debug
+```
+
+The following command builds the `formula2cnf` program:
+
+```sh
+make formula2cnf
+```
+
+## Run
+
+The following command runs the CDCL program (the release version; change to `debug` or `profile` for the respective version of the program)
+
+```sh
+bin/main
+```
+
+## Measuring
+
+```sh
+# prepare data
+mkdir -p data
+cd data
+cat ../links.txt | while read link; do wget "$link"; done
+for file in ./*.tar.gz; do tar -xzf $file; done
+cd ..
+
+# measure
+./test.sh
+
+# check validity
+grep -qrE "^uf,[^,]*,[^,]*,0," out || echo "success" # satisfiable not identified as unsatisfiable
+grep -qrE "^uuf,[^,]*,[^,]*,1," out || echo "success" # unsatisfiable not identified as satisfiable
+
+
+```
+
 
 ## Tseitin Encoding and DIMACS Format
 
@@ -13,41 +77,14 @@ The output is as requested with comments giving detailed description of the stru
 - and then the list of all gates
 - the last comment contains the root of the structure
 
+
 ## DPLL Algorithm &  Watched Literals
 
-The implementation can take a file in SATLIB or DIMACS format. It can deduce the format from the extension of the file name or the format can be specified by either `-c|--dimacs` option or `-s|--satlib` option.
+The implementation can read a file in SATLIB or DIMACS format. It can deduce the format from the extension of the file name or the format can be specified by either `-c, --dimacs` option or `-s, --satlib` option.
 
-By default, it will use the version of the algorithm with watched literals, this can be changed to the version with adjacency lists by using the `-a|--adjacency` option.
+By default, it will use the version of the algorithm with watched literals, this can be changed to the version with adjacency lists by using the `-a, --adjacency` option.
 
-And it also supports the `-e|--equiv` option from the `formula2cnf` program.
-
-## Build
-
-The following command builds the `formula2cnf` binary:
-
-```sh
-make formula2cnf
-```
-
-The following command builds the release version of the dpll `bin/main` binary:
-
-```sh
-make release
-```
-
-The following command will build the debug version with extra assertions in the code ensuring it works as intended:
-
-```sh
-make debug
-```
-
-## Run
-
-The following command runs the dpll program
-
-```sh
-bin/main
-```
+And it also supports the `-e, --equiv` option from the `formula2cnf` program.
 
 ## Comparison of watched literals and adjacency lists
 
