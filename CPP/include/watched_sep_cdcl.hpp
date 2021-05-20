@@ -67,7 +67,7 @@ public:
         auto end = block_distances.end();
         for (auto it = block_distances.begin(); it != end;) {
             if (*it > middle_dist) {
-                cnf.unlearn(it - block_distances.begin() + original_clauses -1, wch);
+                cnf.unlearn(it - block_distances.begin() + original_clauses, wch);
 
                 if (it != --end)
                     std::swap(*it, *end);
@@ -178,7 +178,9 @@ private:
         assign.unassigned.erase(variable);
         assign.variables[variable] = is_true ? d : -d;
         assign.antecedents[variable] = antecedent;
+
         auto end = wch.watched_at[variable].end();
+
         for (auto it = wch.watched_at[variable].begin(); it != end; ++it) {
             auto clause = *it;
 
@@ -190,8 +192,12 @@ private:
 
             if (sat || clause->update(assign.variables, wch)) {
                 assert(clause->satisfied == 0);
-                cnf.satisfied.emplace_back(clause);
+
                 clause->satisfied = d;
+                clause->satisfied_at = cnf.satisfied.size();
+
+                cnf.satisfied.emplace_back(clause);
+
                 continue;
             }
 
@@ -199,12 +205,15 @@ private:
                 cnf.units.emplace_back(clause);
             } else if (clause->is_empty(assign.variables)) {
                 cnf.contra = true;
+
                 assign.antecedents[0] = cnf.index(*clause);
                 assign.variables[0] = d; // contradiction is always true!
+
                 break;
             }
 
             assert(clause->get_watch_var() != variable);
+
             if (clause->snd_watch_var() != variable) {
                 --it;
                 --end;
@@ -215,19 +224,21 @@ private:
     void delete_clauses() {
         delete_useless.delete_clauses(cnf, wch, original_clauses);
 
-        for (auto it = cnf.clauses.begin() + 1; it != cnf.clauses.end(); ++it)
+        for (auto it = cnf.clauses.begin() + 1; it != cnf.clauses.end(); ++it) {
             if (it->is_unit(assign.variables))
                 cnf.units.push_back(&*it);
+        }
     }
 
     bool solve(var_t d) {
-        do {
+        while (true) {
             while (!unit_propag(d)) {
                 if (d == 1)
                     return false;
 
                 auto [new_clause, a] = clause1uip<watch_sep_tag>(assign.antecedents, assign.variables, cnf.clauses, assign.assigned);
                 auto &&clause = cnf.learn(std::move(new_clause), wch);
+
                 delete_useless.register_clause(assign.variables, clause);
 
                 if (till_restart-- > 0) {
@@ -248,7 +259,7 @@ private:
 
             ++decided;
             update(val, ++d, rand() % 2 == 0, 0);
-        } while (true);
+        }
     }
 
     void rollback(var_t d) {
@@ -292,6 +303,7 @@ private:
     WatchedSepList wch;
     luby_generator<int> luby;
     DeleteUseless delete_useless;
+
     int unit_run;
     int till_restart;
 };

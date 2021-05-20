@@ -34,18 +34,20 @@ public:
 
     Clause() noexcept = default;
     Clause(std::vector<LiteralHandle> &&_literals, WatchedSepList &watched_list) noexcept
-        : literals(std::move(_literals)), w1(&literals.back()), w2(&literals.front()), satisfied(0)
+        : literals(std::move(_literals)), w1(&literals.back()), w2(&literals.front()), satisfied(0), satisfied_at(0)
     {
         assert(literals.size() > 0);
         assert(literals.size() == 1 || w1 != w2);
 
         w1->pos = watched_list.watched_at[w1->var()].size();
         watched_list.watched_at[w1->var()].emplace_back(this);
+        assert(watched_list.watched_at[w1->var()][w1->pos] == this);
+
+        if (w2 == w1)
+            return;
 
         w2->pos = watched_list.watched_at[w2->var()].size();
         watched_list.watched_at[w2->var()].emplace_back(this);
-
-        assert(watched_list.watched_at[w1->var()][w1->pos] == this);
         assert(watched_list.watched_at[w2->var()][w2->pos] == this);
     }
 
@@ -67,14 +69,16 @@ public:
 
         if (&this_ref != &var_item.back()) {
             std::swap(this_ref, var_item.back());
+
             if(var == this_ref->w1->var()) {
                 this_ref->w1->pos = lit_handle->pos;
             } else {
                 assert(var == this_ref->w2->var());
+
                 this_ref->w2->pos = lit_handle->pos;
             }
 
-            assert(size() == 1 || this_ref->w1 != this_ref->w2);
+            assert(this_ref->size() == 1 || this_ref->w1 != this_ref->w2);
             assert(watched_list.watched_at[this_ref->w1->var()][this_ref->w1->pos] == this_ref);
             assert(watched_list.watched_at[this_ref->w2->var()][this_ref->w2->pos] == this_ref);
         }
@@ -151,7 +155,7 @@ private:
     LiteralHandle *w1, *w2;
 
 public:
-    lit_t satisfied;
+    lit_t satisfied, satisfied_at;
 };
 
 template<>
@@ -182,21 +186,56 @@ public:
 
     void unlearn(std::size_t index, WatchedSepList &watched_list) {
         Clause<watch_sep_tag> &clause = clauses[index];
-        std::array<LiteralHandle, 2> watches{*clause.w1, *clause.w2};
 
-        for (auto &&lit_handle : watches)
-            clause.remove(&lit_handle, watched_list);
+        clause.remove(clause.w1, watched_list);
+
+        if (clause.size() > 1) {
+            assert(clause.w1 != clause.w2);
+
+            clause.remove(clause.w2, watched_list);
+        }
 
         if (&clause != &clauses.back()) {
             std::swap(clause, clauses.back());
-            std::array<LiteralHandle, 2> watches{*clause.w1, *clause.w2};
 
-            for (auto &&lit_handle : watches) {
-                auto var = lit_handle.var();
+            {
+                auto var = clause.w1->var();
 
-                assert(watched_list.watched_at[var][lit_handle.pos] == &clauses.back());
+                assert(watched_list.watched_at[var][clause.w1->pos] == &clauses.back());
 
-                watched_list.watched_at[var][lit_handle.pos] = &clause;
+                watched_list.watched_at[var][clause.w1->pos] = &clause;
+            }
+
+            if (clause.size() > 1) {
+                auto var = clause.w2->var();
+
+                assert(watched_list.watched_at[var][clause.w2->pos] == &clauses.back());
+
+                watched_list.watched_at[var][clause.w2->pos] = &clause;
+            }
+
+            if (clauses.back().satisfied > 0) {
+                assert(satisfied[clauses.back().satisfied_at] == &clause);
+
+                auto &&entry = satisfied[clauses.back().satisfied_at];
+
+                if (&entry != &satisfied.back()) {
+                    std::swap(entry, satisfied.back());
+
+                    assert(entry->satisfied_at == satisfied.size() - 1);
+
+                    entry->satisfied_at = satisfied.back()->satisfied_at;
+
+                    assert(satisfied[entry->satisfied_at] == entry);
+                }
+
+                satisfied.pop_back();
+            }
+
+            if (clause.satisfied > 0) {
+                assert(satisfied[clause.satisfied_at] == &clauses.back());
+
+                satisfied[clause.satisfied_at] = &clause;
             }
         }
 
@@ -233,8 +272,10 @@ public:
         cnf.clauses.resize(list.size() + 1);
 
         std::size_t c_counter = 0;
+
         for (auto &&c : list) {
             std::vector<LiteralHandle> literals;
+
             literals.reserve(c.size());
             ++c_counter;
 
@@ -265,6 +306,7 @@ private:
     bool unit_propag(var_t d) {
         for (; !cnf.contra && !cnf.units.empty(); cnf.units.pop_back()) {
             auto &&clause = *cnf.units.back();
+
             if (clause.satisfied > 0)
                 continue;
 
@@ -288,7 +330,9 @@ private:
         assign.unassigned.erase(variable);
         assign.variables[variable] = is_true ? d : -d;
         assign.antecedents[variable] = antecedent;
+
         auto end = wch.watched_at[variable].end();
+
         for (auto it = wch.watched_at[variable].begin(); it != end; ++it) {
             auto clause = *it;
 
@@ -300,8 +344,11 @@ private:
 
             if (sat || clause->update(assign.variables, wch)) {
                 assert(clause->satisfied == 0);
-                cnf.satisfied.emplace_back(clause);
+
                 clause->satisfied = d;
+                clause->satisfied_at = cnf.satisfied.size();
+                cnf.satisfied.emplace_back(clause);
+
                 continue;
             }
 
@@ -309,12 +356,15 @@ private:
                 cnf.units.emplace_back(clause);
             } else if (clause->is_empty(assign.variables)) {
                 cnf.contra = true;
+
                 assign.antecedents[0] = cnf.index(*clause); // FIXME? maybe **it
                 assign.variables[0] = d; // contradiction is always true!
+
                 break;
             }
 
             assert(clause->get_watch_var() != variable);
+
             if (clause->snd_watch_var() != variable) {
                 --it;
                 --end;
@@ -348,9 +398,13 @@ private:
     void rollback(var_t d) {
         for (; !assign.assigned.empty(); assign.assigned.pop_back()) {
             auto &&var = assign.assigned.back();
+
             assert(var != 0);
+
             auto &&val = assign.variables[var];
+
             assert(val != 0);
+
             if ((var_t)std::abs(val) <= d)
                 break;
 
@@ -360,9 +414,13 @@ private:
 
         for (; !cnf.satisfied.empty(); cnf.satisfied.pop_back()) {
             auto &&var = cnf.satisfied.back();
+
             assert(var != nullptr);
+
             auto &&val = var->satisfied;
+
             assert(val != 0);
+
             if ((var_t)std::abs(val) <= d)
                 break;
 
