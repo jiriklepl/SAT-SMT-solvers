@@ -203,13 +203,11 @@ int main(int, const char *argv[])
         out << "s UNSATISFIABLE" << std::endl;
 
     out << "Took " << 1000.L * decltype(difference)::period::num * difference.count() / decltype(difference)::period::den << " ms" << std::endl;
+    out << "Made " << solver->decided << " decisions" << std::endl;
+    out << "Derived " << solver->derived << " variables" << std::endl;
 
     if (!solved)
         return 20;
-
-
-    out << "Made " << solver->decided << " decisions" << std::endl;
-    out << "Derived " << solver->derived << " variables" << std::endl;
 
     std::sort(solver->assign.assigned.begin(), solver->assign.assigned.end());
 
