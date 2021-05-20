@@ -4,14 +4,10 @@
 #include "watched_sep.hpp"
 
 class DeleteUseless {
-    std::size_t cache_limit = 1000;
-    std::vector<std::size_t> block_distances;
-
-    // caches:
-    std::vector<bool> distance_register;
-    std::vector<std::size_t> distance_halfer;
-
 public:
+    DeleteUseless(std::size_t cache_limit)
+        : cache_limit(cache_limit), block_distances(), distance_register(), distance_halfer() {}
+
     void register_clause(const std::vector<lit_t> &variables, const Clause<watch_sep_tag> &clause) {
         std::size_t level = 0;
 
@@ -39,10 +35,10 @@ public:
 
         cache_limit *= 2; // FIXME: discuss with lectures
 
-        std::size_t total = 0, current = 0, middle_dist = 0;
+        std::size_t total = 0, current = 0, middle_dist = 0, max_dist = 0;
+
         distance_halfer.clear();
 
-        std::size_t max_dist = 0;
         for (auto &&dist : block_distances) {
             if (dist > max_dist)
                 max_dist = dist;
@@ -84,13 +80,23 @@ public:
             }
         }
     }
+
+private:
+    // the current cache limit
+    std::size_t cache_limit;
+
+    // clause distances
+    std::vector<std::size_t> block_distances;
+
+    // caches:
+    std::vector<bool> distance_register;
+    std::vector<std::size_t> distance_halfer;
 };
 
 class SolverWatchedSepCDCL : public Solver {
-    static constexpr int unit_run = 100;
-
 public:
-    SolverWatchedSepCDCL() : cnf(), wch(), luby(), till_restart(unit_run) {}
+    SolverWatchedSepCDCL(int unit_run, std::size_t cache_limit)
+        : cnf(), wch(), luby(), delete_useless(cache_limit), unit_run(unit_run), till_restart(unit_run) {}
 
     bool solve() override {
         return solve(1);
@@ -104,6 +110,7 @@ public:
         assign.antecedents.clear();
 
         wch.watched_at.clear();
+
         cnf.contra = false;
 
         std::size_t total_size = 0;
@@ -122,7 +129,9 @@ public:
 
             for (auto &&l : c) {
                 literals.emplace_back(l, 0);
+
                 var_t var = (l > 0) ? l : -l;
+
                 if ((std::size_t)var >= wch.watched_at.size()) {
                     assign.variables.resize(2 * var);
                     assign.antecedents.resize(2 * var);
@@ -135,11 +144,10 @@ public:
 
             auto clause = new (cnf.clauses.data() + c_counter) Clause<watch_sep_tag>(std::move(literals), wch);
 
-            if (clause->size() == 1) {
+            if (clause->size() == 1)
                 cnf.units.emplace_back(clause);
-            } else if (clause->size() == 0) {
+            else if (clause->size() == 0)
                 exit(20);
-            }
         }
     }
 
@@ -191,7 +199,7 @@ private:
                 cnf.units.emplace_back(clause);
             } else if (clause->is_empty(assign.variables)) {
                 cnf.contra = true;
-                assign.antecedents[0] = cnf.index(*clause); // FIXME? maybe **it
+                assign.antecedents[0] = cnf.index(*clause);
                 assign.variables[0] = d; // contradiction is always true!
                 break;
             }
@@ -246,9 +254,13 @@ private:
     void rollback(var_t d) {
         for (; !assign.assigned.empty(); assign.assigned.pop_back()) {
             auto &&var = assign.assigned.back();
+
             assert(var != 0);
+
             auto &&val = assign.variables[var];
+
             assert(val != 0);
+
             if ((var_t)std::abs(val) <= d)
                 break;
 
@@ -258,9 +270,13 @@ private:
 
         for (; !cnf.satisfied.empty(); cnf.satisfied.pop_back()) {
             auto &&var = cnf.satisfied.back();
+
             assert(var != nullptr);
+
             auto &&val = var->satisfied;
+
             assert(val != 0);
+
             if ((var_t)std::abs(val) <= d)
                 break;
 
@@ -276,6 +292,7 @@ private:
     WatchedSepList wch;
     luby_generator<int> luby;
     DeleteUseless delete_useless;
+    int unit_run;
     int till_restart;
 };
 

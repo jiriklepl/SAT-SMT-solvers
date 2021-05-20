@@ -244,11 +244,10 @@ public:
                 new (cnf.clauses.data() + c_counter)
                 Clause<watch_tag>(cnf.literals.data() + clause_begin, cnf.literals.data() + l_counter, wch);
 
-            if (clause_begin + 1 == l_counter) {
+            if (clause_begin + 1 == l_counter)
                 cnf.units.emplace_back(clause);
-            } else if (clause_begin == l_counter) {
+            else if (clause_begin == l_counter)
                 exit(20);
-            }
         }
     }
 

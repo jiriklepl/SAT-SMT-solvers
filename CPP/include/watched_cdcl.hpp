@@ -4,10 +4,10 @@
 #include "watched.hpp"
 
 class SolverWatchedCDCL : public Solver {
-    static constexpr int unit_run = 100;
-
 public:
-    SolverWatchedCDCL() : cnf(), wch(), luby(), till_restart(unit_run) {}
+    SolverWatchedCDCL(int unit_run)
+        : cnf(), wch(), luby(), unit_run(unit_run), till_restart(unit_run) {}
+
     bool solve() override {
         return solve(1);
     }
@@ -32,6 +32,7 @@ public:
 
         std::size_t l_counter = 0;
         std::size_t c_counter = 0;
+
         for (auto &&c : list) {
             std::size_t clause_begin = l_counter;
             ++c_counter;
@@ -53,11 +54,10 @@ public:
                 new (cnf.clauses.data() + c_counter)
                 Clause<watch_tag>(cnf.literals.data() + clause_begin, cnf.literals.data() + l_counter, wch);
 
-            if (clause_begin + 1 == l_counter) {
+            if (clause_begin + 1 == l_counter)
                 cnf.units.emplace_back(clause);
-            } else if (clause_begin == l_counter) {
+            else if (clause_begin == l_counter)
                 exit(20);
-            }
         }
 
         original_clauses = cnf.clauses.size();
@@ -67,6 +67,7 @@ private:
     bool unit_propag(var_t d) {
         for (; !cnf.contra && !cnf.units.empty(); cnf.units.pop_back()) {
             auto &&clause = *cnf.units.back();
+
             if (clause.satisfied > 0)
                 continue;
 
@@ -90,7 +91,9 @@ private:
         assign.unassigned.erase(variable);
         assign.variables[variable] = is_true ? d : -d;
         assign.antecedents[variable] = antecedent;
+
         auto end = wch.watched_at[variable].end();
+
         for (auto it = wch.watched_at[variable].begin(); it != end; ++it) {
             auto clause = *it;
 
@@ -111,7 +114,7 @@ private:
                 cnf.units.emplace_back(clause);
             } else if (clause->is_empty(assign.variables)) {
                 cnf.contra = true;
-                assign.antecedents[0] = cnf.index(*clause); // FIXME? maybe **it
+                assign.antecedents[0] = cnf.index(*clause);
                 assign.variables[0] = d; // contradiction is always true!
                 break;
             }
@@ -190,6 +193,7 @@ private:
     std::size_t original_clauses;
     WatchedList wch;
     luby_generator<int> luby;
+    int unit_run;
     int till_restart;
 };
 

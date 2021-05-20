@@ -55,13 +55,13 @@ public:
         assign.antecedents.clear();
 
         adj.adjacency.clear();
+
         cnf.contra = false;
 
         std::size_t total_size = 0;
 
-        for (auto &&c : list) {
+        for (auto &&c : list)
             total_size += c.size();
-        }
 
         cnf.literals.resize(total_size);
         cnf.clauses.resize(list.size() + 1);
@@ -76,11 +76,13 @@ public:
 
             for (auto &&l : c) {
                 cnf.literals[l_counter++] = l;
+
                 var_t var = (l > 0) ? l : -l;
+
                 if ((std::size_t)var >= adjacency.size()) {
                     adjacency.resize(2 * var);
-                    assign.antecedents.resize(2 * var);
 
+                    assign.antecedents.resize(2 * var);
                     assign.variables.resize(2 * var);
                 }
 
@@ -121,9 +123,8 @@ public:
         for (auto &&adj_var : adjacency) {
             auto adj_beg = adj_count;
 
-            for (auto &&clause : adj_var) {
+            for (auto &&clause : adj_var)
                 adj.adjacency_data[adj_count++] = clause;
-            }
 
             adj.adjacency.emplace_back(adj.adjacency_data.data() + adj_beg, adj.adjacency_data.data() + adj_count);
         }
