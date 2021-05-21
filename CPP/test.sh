@@ -2,8 +2,8 @@
 
 mkdir -p out
 
-printf "" > out/adjacency.csv
-printf "" > out/watched.csv
+# printf "" > out/adjacency.csv
+# printf "" > out/watched.csv
 printf "" > out/cdcl-l0-u100.csv
 printf "" > out/cdcl-l1000-u100.csv
 printf "" > out/cdcl-l1000-u200.csv
@@ -25,12 +25,12 @@ printf "" > out/cdcl-l-1-u800.csv
 for file in $(find data -name "*.cnf"); do
     setup=$(echo "$file" | sed 's/.*\/\(uf\|uuf\)\([0-9]\+\)-\([0-9]\+\).*/\1,\2,\3/' | tr "\n" ',')
 
-    if echo "$file" | grep -q "uf50"; then
-        printf '%s' "$setup" >> out/adjacency.csv
-        printf '%s' "$setup" >> out/watched.csv
-        ./bin/main -a "$file" | ./mine.awk >> out/adjacency.csv
-        ./bin/main -w "$file" | ./mine.awk >> out/watched.csv
-    fi
+    # if echo "$file" | grep -q "uf50"; then
+    #     printf '%s' "$setup" >> out/adjacency.csv
+    #     printf '%s' "$setup" >> out/watched.csv
+    #     ./bin/main -a "$file" | ./mine.awk >> out/adjacency.csv
+    #     ./bin/main -w "$file" | ./mine.awk >> out/watched.csv
+    # fi
 
     printf '%s' "$setup" >> out/cdcl-l0-u100.csv
     printf '%s' "$setup" >> out/cdcl-l1000-u100.csv
