@@ -60,9 +60,22 @@ cd ..
 grep -qrE "^uf,[^,]*,[^,]*,0," out || echo "success" # satisfiable not identified as unsatisfiable
 grep -qrE "^uuf,[^,]*,[^,]*,1," out || echo "success" # unsatisfiable not identified as satisfiable
 
+# attempt to find a violation of program invariants
+for i in data/UUF50.218.1000/*; do
+  if (debug/main -u 1 -l 0 $i 2>&1 >/dev/null) | grep ".\+"; then
+    echo $i
+    break
+  fi;
+done
 
+# check that the program does no illegal accesses
+for i in data/UUF50.218.1000/*; do
+  if ! valgrind --tool=memcheck bin/main -u 1 -l 0 $i 2>&1 >/dev/null | grep -q ": 0 errors"; then
+    echo $i
+    break
+  fi;
+done
 ```
-
 
 ## Tseitin Encoding and DIMACS Format
 
