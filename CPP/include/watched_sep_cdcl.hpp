@@ -33,7 +33,7 @@ public:
         if (block_distances.size() < cache_limit)
             return;
 
-        cache_limit *= 2; // FIXME: discuss with lectures
+        cache_limit *= 2; // TODO for future work: consider better heuristic
 
         std::size_t total = 0, current = 0, middle_dist = 0, max_dist = 0;
 
@@ -102,7 +102,6 @@ public:
         return solve(1);
     }
 
-    // TODO: refactor this
     void set(std::vector<std::vector<lit_t>> &list) override {
         assign.assigned. clear();
         assign.unassigned.clear();

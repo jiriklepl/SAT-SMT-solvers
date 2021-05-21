@@ -255,7 +255,6 @@ public:
         return solve(1);
     }
 
-    // TODO: refactor this
     void set(std::vector<std::vector<lit_t>> &list) override {
         assign.assigned. clear();
         assign.unassigned.clear();
@@ -358,7 +357,7 @@ private:
             } else if (clause->is_empty(assign.variables)) {
                 cnf.contra = true;
 
-                assign.antecedents[0] = cnf.index(*clause); // FIXME? maybe **it
+                assign.antecedents[0] = cnf.index(*clause);
                 assign.variables[0] = d; // contradiction is always true!
 
                 break;

@@ -12,7 +12,6 @@ public:
         return solve(1);
     }
 
-    // TODO: refactor this
     void set(std::vector<std::vector<lit_t>> &list) override {
         assign.assigned. clear();
         assign.unassigned.clear();
