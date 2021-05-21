@@ -47,7 +47,6 @@ public:
         return solve(0);
     }
 
-    // TODO: refactor this
     void set(std::vector<std::vector<lit_t>> &list) override {
         assign.assigned. clear();
         assign.unassigned.clear();
@@ -55,13 +54,13 @@ public:
         assign.antecedents.clear();
 
         adj.adjacency.clear();
+
         cnf.contra = false;
 
         std::size_t total_size = 0;
 
-        for (auto &&c : list) {
+        for (auto &&c : list)
             total_size += c.size();
-        }
 
         cnf.literals.resize(total_size);
         cnf.clauses.resize(list.size() + 1);
@@ -76,11 +75,13 @@ public:
 
             for (auto &&l : c) {
                 cnf.literals[l_counter++] = l;
-                std::size_t var = (l > 0) ? l : -l;
-                if (var >= adjacency.size()) {
-                    adjacency.resize(2 * var);
-                    assign.antecedents.resize(2 * var);
 
+                var_t var = (l > 0) ? l : -l;
+
+                if ((std::size_t)var >= adjacency.size()) {
+                    adjacency.resize(2 * var);
+
+                    assign.antecedents.resize(2 * var);
                     assign.variables.resize(2 * var);
                 }
 
@@ -94,7 +95,7 @@ public:
                         adjacency[var].erase(new_it.first);
 
                         --c_counter;
-                        l_counter  = clause_begin;
+                        l_counter = clause_begin;
                         goto skip_clause;
                     }
                 } else {
@@ -103,6 +104,10 @@ public:
             }
 
             cnf.clauses[c_counter] = Clause<adjacency_tag>(cnf.literals.data() + clause_begin, cnf.literals.data() + l_counter);
+
+            if (cnf.clauses[c_counter].size() == 1)
+                cnf.units.push_back(&cnf.clauses[c_counter]);
+
             skip_clause:;
         }
 
@@ -117,16 +122,15 @@ public:
         for (auto &&adj_var : adjacency) {
             auto adj_beg = adj_count;
 
-            for (auto &&clause : adj_var) {
+            for (auto &&clause : adj_var)
                 adj.adjacency_data[adj_count++] = clause;
-            }
 
             adj.adjacency.emplace_back(adj.adjacency_data.data() + adj_beg, adj.adjacency_data.data() + adj_count);
         }
     }
 
 private:
-    void update(lit_t variable, lit_t d, bool is_true, lit_t antecedent) {
+    void update(var_t variable, var_t d, bool is_true, lit_t antecedent) {
         assign.assigned.push_back(variable);
         assign.unassigned.erase(variable);
         assign.variables[variable] = is_true ? d : -d;
@@ -180,7 +184,7 @@ private:
         }
     }
 
-    void restore(std::size_t variable) {
+    void restore(var_t variable) {
         assert(variable != 0);
         for (auto &&a : adj.adjacency[variable]) {
             assert(a != 0);
@@ -192,17 +196,17 @@ private:
                 adj.adjacency[std::abs(l)].restore();
             }
 
-            assert(std::abs(*clause.end()) == variable);
+            assert((var_t)std::abs(*clause.end()) == variable);
             clause.restore();
         }
     }
 
-    void rollback(std::size_t d) {
+    void rollback(var_t d) {
         for (; !assign.assigned.empty(); assign.assigned.pop_back()) {
             auto var = assign.assigned.back();
             assert(var != 0);
             auto &&val = assign.variables[var];
-            if (std::abs(val) == d)
+            if ((var_t)std::abs(val) == d)
                 break;
 
             if (val != 0)
@@ -215,7 +219,7 @@ private:
         cnf.contra = false;
     }
 
-    bool unit_propag(lit_t d) {
+    bool unit_propag(var_t d) {
         for (;!cnf.contra && !cnf.units.empty();) {
             auto clause = *cnf.units.back();
             cnf.units.pop_back();
@@ -235,7 +239,7 @@ private:
         return !cnf.contra;
     }
 
-    bool solve(std::size_t d) {
+    bool solve(var_t d) {
         if (!unit_propag(d))
             return false;
 

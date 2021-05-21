@@ -1,6 +1,6 @@
 CXX := g++
 LEXPP := flex++
-CXXOPTS := -std=c++20 -Wall -Wextra -pedantic -DNDEBUG -O2 -s -march=native
+CXXOPTS := -std=c++20 -Wall -Wextra -pedantic -DNDEBUG -O2 -march=native
 CXXOPTS_PROFILE := -std=c++20 -Wall -Wextra -pedantic -DNDEBUG -O2 -g
 CXXOPTS_DEBUG := -std=c++20 -Wall -Wextra -pedantic -DDEBUG -O0 -g
 INCLUDE := include

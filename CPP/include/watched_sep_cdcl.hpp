@@ -1,12 +1,102 @@
-#ifndef WATCHED_CDCL_HPP
-#define WATCHED_CDCL_HPP
+#ifndef WATCHED_SEP_CDCL_HPP
+#define WATCHED_SEP_CDCL_HPP
 
-#include "watched.hpp"
+#include "watched_sep.hpp"
 
-class SolverWatchedCDCL : public Solver {
+class DeleteUseless {
 public:
-    SolverWatchedCDCL(int unit_run)
-        : cnf(), wch(), luby(), unit_run(unit_run), till_restart(unit_run) {}
+    DeleteUseless(std::size_t cache_limit)
+        : cache_limit(cache_limit), block_distances(), distance_register(), distance_halfer() {}
+
+    void register_clause(const std::vector<lit_t> &variables, const Clause<watch_sep_tag> &clause) {
+        std::size_t level = 0;
+
+        distance_register.clear();
+        distance_register.resize(std::abs(variables[clause.get_watch_var()]) + 1, false);
+
+        for (auto [lit, _pos] : clause) {
+            auto &&bit = distance_register[std::abs(variables[std::abs(lit)])];
+
+            if (bit)
+                continue;
+
+            ++level;
+            bit = true;
+        }
+
+        assert(distance_register.back());
+
+        block_distances.emplace_back(level);
+    }
+
+    void delete_clauses(Cnf<watch_sep_tag> &cnf, WatchedSepList &wch, std::size_t original_clauses) {
+        if (block_distances.size() < cache_limit)
+            return;
+
+        cache_limit *= 2; // TODO for future work: consider better heuristic
+
+        std::size_t total = 0, current = 0, middle_dist = 0, max_dist = 0;
+
+        distance_halfer.clear();
+
+        for (auto &&dist : block_distances) {
+            if (dist > max_dist)
+                max_dist = dist;
+        }
+
+        distance_halfer.resize(max_dist + 1, 0);
+
+        for (auto &&dist : block_distances) {
+            assert(dist < distance_halfer.size());
+
+            ++total;
+            ++distance_halfer[dist];
+        }
+
+        assert(distance_halfer.back() != 0);
+
+        for (auto &&count : distance_halfer) {
+            current += count;
+
+            if (current * 2 >= total)
+                break;
+
+            ++middle_dist;
+        }
+
+        auto end = block_distances.end();
+        for (auto it = block_distances.begin(); it != end;) {
+            if (*it > middle_dist) {
+                cnf.unlearn(it - block_distances.begin() + original_clauses, wch);
+
+                if (it != --end)
+                    std::swap(*it, *end);
+
+                assert(&*end == &block_distances.back());
+
+                block_distances.pop_back();
+            } else {
+                ++it;
+            }
+        }
+    }
+
+private:
+    // the current cache limit
+    std::size_t cache_limit;
+
+    // clause distances
+    std::vector<std::size_t> block_distances;
+
+    // caches:
+    std::vector<bool> distance_register;
+    std::vector<std::size_t> distance_halfer;
+};
+
+class SolverWatchedSepCDCL : public Solver {
+public:
+    SolverWatchedSepCDCL(int unit_run, std::size_t cache_limit)
+        : cnf(), wch(), luby(), delete_useless(cache_limit), unit_run(unit_run), till_restart(unit_run) {}
 
     bool solve() override {
         return solve(1);
@@ -19,6 +109,7 @@ public:
         assign.antecedents.clear();
 
         wch.watched_at.clear();
+
         cnf.contra = false;
 
         std::size_t total_size = 0;
@@ -26,18 +117,20 @@ public:
         for (auto &&c : list)
             total_size += c.size();
 
-        cnf.literals.resize(total_size);
         cnf.clauses.resize(list.size() + 1);
+        original_clauses = cnf.clauses.size();
 
-        std::size_t l_counter = 0;
         std::size_t c_counter = 0;
         for (auto &&c : list) {
-            std::size_t clause_begin = l_counter;
+            std::vector<LiteralHandle> literals;
+            literals.reserve(c.size());
             ++c_counter;
 
             for (auto &&l : c) {
-                cnf.literals[l_counter++] = {l, 0};
+                literals.emplace_back(l, 0);
+
                 var_t var = (l > 0) ? l : -l;
+
                 if ((std::size_t)var >= wch.watched_at.size()) {
                     assign.variables.resize(2 * var);
                     assign.antecedents.resize(2 * var);
@@ -48,24 +141,19 @@ public:
                 assign.unassigned.emplace(var);
             }
 
-            Clause<watch_tag> *clause =
-                new (cnf.clauses.data() + c_counter)
-                Clause<watch_tag>(cnf.literals.data() + clause_begin, cnf.literals.data() + l_counter, wch);
+            auto clause = new (cnf.clauses.data() + c_counter) Clause<watch_sep_tag>(std::move(literals), wch);
 
-            if (clause_begin + 1 == l_counter)
+            if (clause->size() == 1)
                 cnf.units.emplace_back(clause);
-            else if (clause_begin == l_counter)
+            else if (clause->size() == 0)
                 exit(20);
         }
-
-        original_clauses = cnf.clauses.size();
     }
 
 private:
     bool unit_propag(var_t d) {
         for (; !cnf.contra && !cnf.units.empty(); cnf.units.pop_back()) {
             auto &&clause = *cnf.units.back();
-
             if (clause.satisfied > 0)
                 continue;
 
@@ -103,8 +191,12 @@ private:
 
             if (sat || clause->update(assign.variables, wch)) {
                 assert(clause->satisfied == 0);
-                cnf.satisfied.emplace_back(clause);
+
                 clause->satisfied = d;
+                clause->satisfied_at = cnf.satisfied.size();
+
+                cnf.satisfied.emplace_back(clause);
+
                 continue;
             }
 
@@ -112,12 +204,15 @@ private:
                 cnf.units.emplace_back(clause);
             } else if (clause->is_empty(assign.variables)) {
                 cnf.contra = true;
+
                 assign.antecedents[0] = cnf.index(*clause);
                 assign.variables[0] = d; // contradiction is always true!
+
                 break;
             }
 
             assert(clause->get_watch_var() != variable);
+
             if (clause->snd_watch_var() != variable) {
                 --it;
                 --end;
@@ -126,17 +221,24 @@ private:
     }
 
     void delete_clauses() {
+        delete_useless.delete_clauses(cnf, wch, original_clauses);
 
+        for (auto it = cnf.clauses.begin() + 1; it != cnf.clauses.end(); ++it) {
+            if (it->is_unit(assign.variables))
+                cnf.units.push_back(&*it);
+        }
     }
 
     bool solve(var_t d) {
-        do {
+        while (true) {
             while (!unit_propag(d)) {
                 if (d == 1)
                     return false;
 
-                auto [new_clause, a] = clause1uip<watch_tag>(assign.antecedents, assign.variables, cnf.clauses, assign.assigned);
+                auto [new_clause, a] = clause1uip<watch_sep_tag>(assign.antecedents, assign.variables, cnf.clauses, assign.assigned);
                 auto &&clause = cnf.learn(std::move(new_clause), wch);
+
+                delete_useless.register_clause(assign.variables, clause);
 
                 if (till_restart-- > 0) {
                     rollback(d = a);
@@ -156,15 +258,19 @@ private:
 
             ++decided;
             update(val, ++d, rand() % 2 == 0, 0);
-        } while (true);
+        }
     }
 
     void rollback(var_t d) {
         for (; !assign.assigned.empty(); assign.assigned.pop_back()) {
             auto &&var = assign.assigned.back();
+
             assert(var != 0);
+
             auto &&val = assign.variables[var];
+
             assert(val != 0);
+
             if ((var_t)std::abs(val) <= d)
                 break;
 
@@ -174,9 +280,13 @@ private:
 
         for (; !cnf.satisfied.empty(); cnf.satisfied.pop_back()) {
             auto &&var = cnf.satisfied.back();
+
             assert(var != nullptr);
+
             auto &&val = var->satisfied;
+
             assert(val != 0);
+
             if ((var_t)std::abs(val) <= d)
                 break;
 
@@ -187,12 +297,14 @@ private:
         cnf.contra = false;
     }
 
-    Cnf<watch_tag> cnf;
+    Cnf<watch_sep_tag> cnf;
     std::size_t original_clauses;
-    WatchedList wch;
+    WatchedSepList wch;
     luby_generator<int> luby;
+    DeleteUseless delete_useless;
+
     int unit_run;
     int till_restart;
 };
 
-#endif // WATCHED_CDCL_HPP
+#endif // WATCHED_SEP_CDCL_HPP

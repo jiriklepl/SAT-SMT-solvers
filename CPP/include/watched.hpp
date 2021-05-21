@@ -17,7 +17,7 @@ public:
     using value_t = std::pair<lit_t, std::size_t>;
     using WatchHandle = value_t*;
 
-    static std::size_t get_var(WatchHandle w) { return std::abs(w->first); }
+    static var_t get_var(WatchHandle w) { return std::abs(w->first); }
 
     static constexpr lit_t &get_lit(WatchHandle &w) { return w->first; }
     static constexpr const lit_t &get_lit(const WatchHandle &w) { return w->first; }
@@ -48,6 +48,34 @@ public:
     value_t *end() { return after; }
     const value_t *end() const { return after; }
 
+    std::size_t size() const { return after - start; }
+
+    void remove(std::pair<lit_t, std::size_t> *lit_handle, WatchedList &watched_list) noexcept {
+
+        var_t var  = get_var(lit_handle);
+
+        auto &&var_item = watched_list.watched_at[var];
+        auto &&this_ref = watched_list.watched_at[var][get_pos(lit_handle)];
+
+        assert(this_ref == this);
+
+        if (&this_ref != &var_item.back()) {
+            std::swap(this_ref, var_item.back());
+            if(var == get_var(this_ref->w1)) {
+                get_pos(this_ref->w1) = get_pos(lit_handle);
+            } else {
+                assert(var == get_var(this_ref->w2));
+                get_pos(this_ref->w2) = get_pos(lit_handle);
+            }
+
+            assert(size() == 1 || this_ref->w1 != this_ref->w2);
+            assert(watched_list.watched_at[get_var(this_ref->w1)][get_pos(this_ref->w1)] == this_ref);
+            assert(watched_list.watched_at[get_var(this_ref->w2)][get_pos(this_ref->w2)] == this_ref);
+        }
+
+        var_item.pop_back();
+    }
+
     bool update(const std::vector<lit_t> &variables, WatchedList &watched_list) noexcept {
         if (variables[get_var(w1)] * get_lit(w1) > 0)
             return true;
@@ -65,25 +93,8 @@ public:
                 auto tmp_var  = get_var(tmp);
 
                 assert(variables[get_var(w1)] == 0);
-                auto &&var_item = watched_list.watched_at[tmp_var];
-                auto &&this_ref = watched_list.watched_at[tmp_var][get_pos(tmp)];
-                assert(this_ref == this);
 
-                if (&this_ref != &var_item.back()) {
-                    std::swap(this_ref, var_item.back());
-                    if(tmp_var == get_var(this_ref->w1)) {
-                        get_pos(this_ref->w1) = get_pos(tmp);
-                    } else {
-                        assert(tmp_var == get_var(this_ref->w2));
-                        get_pos(this_ref->w2) = get_pos(tmp);
-                    }
-
-                    assert(this_ref->after - this_ref->start == 1 || this_ref->w1 != this_ref->w2);
-                    assert(watched_list.watched_at[get_var(this_ref->w1)][get_pos(this_ref->w1)] == this_ref);
-                    assert(watched_list.watched_at[get_var(this_ref->w2)][get_pos(this_ref->w2)] == this_ref);
-                }
-
-                var_item.pop_back();
+                remove(tmp, watched_list);
 
                 get_pos(w2) = watched_list.watched_at[get_var(w2)].size();
                 watched_list.watched_at[get_var(w2)].emplace_back(this);
@@ -91,14 +102,14 @@ public:
             } else if (variables[get_var(w2)] * get_lit(w2) > 0) {
                 w2 = tmp;
 
-                assert(after - start == 1 || w1 != w2);
+                assert(size() == 1 || w1 != w2);
                 assert(watched_list.watched_at[get_var(w1)][get_pos(w1)] == this);
                 assert(watched_list.watched_at[get_var(w2)][get_pos(w2)] == this);
                 return true;
             }
         }
 
-        assert(after - start == 1 || w1 != w2);
+        assert(size() == 1 || w1 != w2);
         assert(watched_list.watched_at[get_var(w1)][get_pos(w1)] == this);
         assert(watched_list.watched_at[get_var(w2)][get_pos(w2)] == this);
         assert((variables[get_var(w1)] == 0) || (variables[get_var(w2)] != 0));
@@ -107,9 +118,11 @@ public:
     }
 
     const lit_t &get_watch() const noexcept { return get_lit(w1); }
+    var_t get_watch_var() const noexcept { return std::abs(get_lit(w1)); }
     const lit_t &snd_watch() const noexcept { return get_lit(w2); }
+    var_t snd_watch_var() const noexcept { return std::abs(get_lit(w2)); }
 
-    void assure_watch(std::size_t variable) noexcept {
+    void assure_watch(var_t variable) noexcept {
         if (get_var(w2) != variable)
             std::swap(w1, w2);
         assert(get_var(w2) == variable);
@@ -141,13 +154,13 @@ public:
         return &clause - &clauses.front();
     }
 
-    Clause<watch_tag> &learn(const std::vector<lit_t> &clause, WatchedList &watched_list) {
+    Clause<watch_tag> &learn(std::vector<Clause<watch_tag>::value_t> &&clause, WatchedList &watched_list) {
         std::size_t end = literals.end() - literals.begin();
 
         if (literals.size() + clause.size() > literals.capacity()) {
             auto orig = literals.data();
 
-            for (auto &&lit : clause)
+            for (auto &&[lit, _pos] : clause)
                 literals.emplace_back(lit, 0);
 
             for (auto &&clause : clauses) {
@@ -157,7 +170,7 @@ public:
                 clause.w2 = clause.w2 - orig + literals.data();
             }
         } else {
-            for (auto &&lit : clause)
+            for (auto &&[lit, _pos] : clause)
                 literals.emplace_back(lit, 0);
         }
 
@@ -189,10 +202,9 @@ public:
 class SolverWatched : public Solver {
 public:
     bool solve() override {
-        return solve(0);
+        return solve(1);
     }
 
-    // TODO: refactor this
     void set(std::vector<std::vector<lit_t>> &list) override {
         assign.assigned. clear();
         assign.unassigned.clear();
@@ -218,8 +230,8 @@ public:
 
             for (auto &&l : c) {
                 cnf.literals[l_counter++] = {l, 0};
-                std::size_t var = (l > 0) ? l : -l;
-                if (var >= wch.watched_at.size()) {
+                var_t var = (l > 0) ? l : -l;
+                if ((std::size_t)var >= wch.watched_at.size()) {
                     assign.variables.resize(2 * var);
                     assign.antecedents.resize(2 * var);
 
@@ -229,15 +241,19 @@ public:
                 assign.unassigned.emplace(var);
             }
 
-            new (cnf.clauses.data() + c_counter) Clause<watch_tag>(cnf.literals.data() + clause_begin, cnf.literals.data() + l_counter, wch);
+            Clause<watch_tag> *clause =
+                new (cnf.clauses.data() + c_counter)
+                Clause<watch_tag>(cnf.literals.data() + clause_begin, cnf.literals.data() + l_counter, wch);
 
-            if (clause_begin == l_counter)
+            if (clause_begin + 1 == l_counter)
+                cnf.units.emplace_back(clause);
+            else if (clause_begin == l_counter)
                 exit(20);
         }
     }
 
 private:
-    bool unit_propag(lit_t d) {
+    bool unit_propag(var_t d) {
         for (; !cnf.contra && !cnf.units.empty(); cnf.units.pop_back()) {
             auto &&clause = *cnf.units.back();
             if (clause.satisfied > 0)
@@ -258,7 +274,7 @@ private:
         return !cnf.contra;
     }
 
-    void update(std::size_t variable, lit_t d, bool is_true, lit_t antecedent) {
+    void update(var_t variable, var_t d, bool is_true, lit_t antecedent) {
         assign.assigned.emplace_back(variable);
         assign.unassigned.erase(variable);
         assign.variables[variable] = is_true ? d : -d;
@@ -284,20 +300,20 @@ private:
                 cnf.units.emplace_back(clause);
             } else if (clause->is_empty(assign.variables)) {
                 cnf.contra = true;
-                assign.antecedents[0] = cnf.index(*clause); // FIXME? maybe **it
+                assign.antecedents[0] = cnf.index(*clause);
                 assign.variables[0] = d; // contradiction is always true!
                 break;
             }
 
-            assert(std::abs(clause->get_watch()) != variable);
-            if (std::abs(clause->snd_watch()) != variable) {
+            assert(clause->get_watch_var() != variable);
+            if (clause->snd_watch_var() != variable) {
                 --it;
                 --end;
             }
         }
     }
 
-    bool solve(lit_t d) {
+    bool solve(var_t d) {
         if (!unit_propag(d))
             return false;
 
@@ -317,21 +333,16 @@ private:
 
         update(val, d + 1, !first, 0);
 
-        if (solve(d + 1))
-            return true;
-        else
-            rollback(d);
-
-        return false;
+        return solve(d + 1);
     }
 
-    void rollback(std::size_t d) {
+    void rollback(var_t d) {
         for (; !assign.assigned.empty(); assign.assigned.pop_back()) {
             auto &&var = assign.assigned.back();
             assert(var != 0);
             auto &&val = assign.variables[var];
             assert(val != 0);
-            if (std::abs(val) <= d)
+            if ((var_t)std::abs(val) <= d)
                 break;
 
             val = 0;
@@ -343,7 +354,7 @@ private:
             assert(var != nullptr);
             auto &&val = var->satisfied;
             assert(val != 0);
-            if (std::abs(val) <= d)
+            if ((var_t)std::abs(val) <= d)
                 break;
 
             val = 0;

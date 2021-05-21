@@ -5,12 +5,15 @@
 #include <compare>
 #include <cstdint>
 #include <utility>
+#include <variant>
 #include <vector>
 #include <unordered_set>
 
 using lit_t = std::int32_t;
+using var_t = std::make_unsigned_t<lit_t>;
 
 struct watch_tag;
+struct watch_sep_tag;
 struct adjacency_tag;
 
 template<typename> class Clause;
@@ -27,10 +30,10 @@ struct Assignment {
     std::vector<lit_t> antecedents; // antecedents[0] stands for the the contradiction
 
     // list of assigned variables
-    std::vector<std::size_t> assigned;
+    std::vector<var_t> assigned;
 
     // set of unassigned variables
-    std::unordered_set<std::size_t> unassigned;
+    std::unordered_set<var_t> unassigned;
 };
 
 template<typename parent, typename V>
@@ -120,22 +123,42 @@ public:
 
 inline Solver::~Solver() {}
 
-template<typename tag>
-inline std::pair<std::vector<lit_t>, lit_t> clause1uip(const decltype(Assignment::antecedents) &antecedents, const decltype(Assignment::variables) &variables, const decltype(Cnf<tag>::clauses) &clauses, const decltype(Assignment::assigned) &assigned) {
-    std::vector<lit_t> others; // contains all literals l'@d' s.t. d' < d
-    std::vector<bool> added(variables.size(), false);
 
-    auto d = variables[0]; // always positive
-    lit_t level = -1;
+/**
+ * @brief
+ *
+ * @tparam Tag
+ * @param antecedents
+ * @param variables
+ * @param clauses
+ * @param assigned
+ * @return the returned vector is the clause to learn, the last element is the variable with the highest decision level and the penultimate one is the literal with the second highest decision level
+ */
+template<typename Tag>
+inline auto clause1uip(
+    const decltype(Assignment::antecedents) &antecedents,
+    const decltype(Assignment::variables) &variables,
+    const decltype(Cnf<Tag>::clauses) &clauses,
+    const decltype(Assignment::assigned) &assigned
+) {
+    using value_t = typename Clause<Tag>::value_t;
+
+    const var_t d = variables[0]; // always positive
+
+    std::pair<std::vector<value_t>, var_t> return_v = {{}, 0};
+    auto &&[others, level] = return_v; // others: contains all literals l'@d' s.t. d' < d
+
     std::size_t level_idx = 0;
+
+    std::vector<bool> added(variables.size(), false);
     std::size_t last = 0;
 
     {
         auto &&clause = clauses[antecedents[0]];
 
-        for (auto &&lit : clause) {
-            auto var = std::abs(lit.first);
-            auto other_d = std::abs(variables[var]);
+        for (auto &&[lit, _pos] : clause) {
+            var_t var = std::abs(lit);
+            var_t other_d = std::abs(variables[var]);
             added[var] = true;
 
             assert(other_d <= d);
@@ -148,7 +171,7 @@ inline std::pair<std::vector<lit_t>, lit_t> clause1uip(const decltype(Assignment
                     level_idx = others.size();
                 }
 
-                others.push_back(lit.first);
+                others.emplace_back(lit, 0);
             }
         }
     }
@@ -163,7 +186,7 @@ inline std::pair<std::vector<lit_t>, lit_t> clause1uip(const decltype(Assignment
         if (last == 1)
             break;
 
-        auto var = *pivot;
+        var_t var = *pivot;
         auto ante = antecedents[var];
         --last;
 
@@ -171,9 +194,9 @@ inline std::pair<std::vector<lit_t>, lit_t> clause1uip(const decltype(Assignment
 
         auto &&clause = clauses[ante];
 
-        for (auto &&lit : clause) {
-            auto other_var = std::abs(lit.first);
-            auto other_d = std::abs(variables[other_var]);
+        for (auto &&[lit, _pos] : clause) {
+            var_t other_var = std::abs(lit);
+            var_t other_d = std::abs(variables[other_var]);
 
             if (added[other_var])
                 continue;
@@ -190,7 +213,7 @@ inline std::pair<std::vector<lit_t>, lit_t> clause1uip(const decltype(Assignment
                     level_idx = others.size();
                 }
 
-                others.push_back(lit.first);
+                others.emplace_back(lit, 0);
             }
         }
     }
@@ -198,7 +221,7 @@ inline std::pair<std::vector<lit_t>, lit_t> clause1uip(const decltype(Assignment
     assert(last == 1);
     assert(added[*pivot]);
 
-    others.push_back(variables[*pivot] > 0 ? -*pivot : *pivot);
+    others.emplace_back(variables[*pivot] > 0 ? -*pivot : *pivot, 0);
 
     if (others.size() == 1)
         level = 1;
@@ -206,7 +229,26 @@ inline std::pair<std::vector<lit_t>, lit_t> clause1uip(const decltype(Assignment
     if (level_idx > 0)
         std::swap(others[level_idx], others[0]);
 
-    return std::make_pair(std::move(others), level);
+    return return_v;
 }
+
+// http://oeis.org/A182105
+template<typename Int>
+class luby_generator {
+public:
+    constexpr luby_generator() noexcept : u(1), v(1) {}
+    Int& operator*() noexcept { return v; }
+    const Int& operator*() const noexcept { return v; }
+    luby_generator &operator++() noexcept {
+        if ((u & -u) == v)
+            u += v = 1;
+        else
+            v <<= 1;
+
+        return *this;
+    }
+private:
+    Int u, v;
+};
 
 #endif // SHARED_HPP

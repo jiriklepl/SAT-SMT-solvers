@@ -7,10 +7,10 @@ fi
 
 [ -f "./main" ] || make main
 
-./main short $1 $2
+./main short "$1" "$2"
 result=$?
 if [ $result -eq 20 ]; then
-    ./main short $2 $1
+    ./main short "$2" "$1"
     result=$?
     if [ $result -eq 20 ]; then
         echo "Neither implies the other."
@@ -20,7 +20,7 @@ if [ $result -eq 20 ]; then
         echo "ERROR. (But left doesn't imply right)"
     fi
 elif [ $result -eq 10 ]; then
-    ./main short $2 $1
+    ./main short "$2" "$1"
     result=$?
     if [ $result -eq 20 ]; then
         echo "Left implies right."
