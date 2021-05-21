@@ -90,8 +90,6 @@ public:
                 if (w2 == w1)
                     continue;
 
-                auto tmp_var  = get_var(tmp);
-
                 assert(variables[get_var(w1)] == 0);
 
                 remove(tmp, watched_list);

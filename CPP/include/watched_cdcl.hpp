@@ -31,6 +31,7 @@ public:
 
         std::size_t l_counter = 0;
         std::size_t c_counter = 0;
+
         for (auto &&c : list) {
             std::size_t clause_begin = l_counter;
             ++c_counter;
