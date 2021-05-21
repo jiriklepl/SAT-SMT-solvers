@@ -214,28 +214,29 @@ public:
                 watched_list.watched_at[var][clause.w2->pos] = &clause;
             }
 
+            if (clause.satisfied > 0) {
+                assert(satisfied[clause.satisfied_at] == &clauses.back());
+
+                satisfied[clause.satisfied_at] = &clause;
+            }
+
+
             if (clauses.back().satisfied > 0) {
                 assert(satisfied[clauses.back().satisfied_at] == &clause);
 
                 auto &&entry = satisfied[clauses.back().satisfied_at];
 
                 if (&entry != &satisfied.back()) {
+                    assert(satisfied.back()->satisfied_at == satisfied.size() - 1);
+
+                    satisfied.back()->satisfied_at = clauses.back().satisfied_at;
+
                     std::swap(entry, satisfied.back());
-
-                    assert(entry->satisfied_at == satisfied.size() - 1);
-
-                    entry->satisfied_at = satisfied.back()->satisfied_at;
 
                     assert(satisfied[entry->satisfied_at] == entry);
                 }
 
                 satisfied.pop_back();
-            }
-
-            if (clause.satisfied > 0) {
-                assert(satisfied[clause.satisfied_at] == &clauses.back());
-
-                satisfied[clause.satisfied_at] = &clause;
             }
         }
 
