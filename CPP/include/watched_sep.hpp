@@ -227,7 +227,7 @@ public:
                 auto &&entry = satisfied[clauses.back().satisfied_at];
 
                 if (&entry != &satisfied.back()) {
-                    assert(satisfied.back()->satisfied_at == satisfied.size() - 1);
+                    assert((std::size_t)satisfied.back()->satisfied_at == satisfied.size() - 1);
 
                     satisfied.back()->satisfied_at = clauses.back().satisfied_at;
 
