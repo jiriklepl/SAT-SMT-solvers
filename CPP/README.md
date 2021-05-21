@@ -43,6 +43,12 @@ The following command runs the CDCL program (the release version; change to `deb
 bin/main
 ```
 
+To print out the help for the CDCL program:
+
+```sh
+bin/main --help
+```
+
 ## Measuring
 
 ```sh
@@ -76,6 +82,16 @@ for i in data/UUF50.218.1000/*; do
   fi;
 done
 ```
+
+## Aggregating the data
+
+```sh
+./script.R
+```
+
+## Results
+
+
 
 ## Tseitin Encoding and DIMACS Format
 
