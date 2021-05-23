@@ -71,7 +71,7 @@ private:
 class Parser {
 public:
     template<class T, class E>
-    friend std::ostream &WithBouncePrint<T, E>::bounce_print(std::ostream &, Parser &) const;
+    friend class WithBouncePrint;
 
     Parser(std::istream &in, int k, bool distinct)
         : first_chars(), chars(), in(in), k(k), peek(in.get()), line(1), distinct(distinct) { skip(); }
@@ -393,7 +393,7 @@ private:
                 case '\n': line++;
                 case ' ':
                 case '\t':
-                case '\r': [[likely]]
+                case '\r':
                 continue;
 
                 default:
