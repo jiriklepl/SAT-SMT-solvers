@@ -60,7 +60,7 @@ public:
                 else
                     out << "(>= " << i << " 1)\n";
 
-                out << "(<= " << i << " " << k << ")\n";
+                out << "(<= " << i << " " << k - 1 << ")\n";
             }
         }
 
@@ -371,11 +371,11 @@ using namespace std::string_literals;
 
 int main(int argc, char * argv[]) {
     int base = 10;
-    bool distinct = false;
+    bool distinct = true;
 
     if (argc > 1) {
         if (argv[1] == "-d"s)
-            distinct = true;
+            distinct = false;
     }
 
 
