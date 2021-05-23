@@ -3,38 +3,76 @@
 #include <memory>
 #include <string>
 #include <string>
+#include <sstream>
 #include <vector>
 
 class Expression;
+class Negatable;
 class Disjunction;
 class Conjunction;
 class Equation;
+template<class> class NegExpression;
+class Parser;
 
 class Expression {
 public:
     virtual ~Expression() noexcept = 0;
+    virtual std::ostream &bounce_print(std::ostream &out, Parser &parser) const = 0;
 };
 
 Expression::~Expression() noexcept = default;
 
-class Disjunction : public Expression {
+class Negatable : public Expression {
 public:
-    std::vector<Conjunction> conjunctions;
+    virtual std::unique_ptr<Negatable> negate() = 0;
 };
 
-class Conjunction : public Expression {
+template<class T, class E>
+class WithBouncePrint : public E {
+public:
+    WithBouncePrint() = default;
+    WithBouncePrint(E &&e) : E(std::move(e)) {}
+
+private:
+    std::ostream &bounce_print(std::ostream &out, Parser &parser) const override;
+};
+
+class Disjunction : public WithBouncePrint<Disjunction, Negatable> {
+public:
+    std::vector<Conjunction> conjunctions;
+
+private:
+    std::unique_ptr<Negatable> negate() override;
+};
+
+class Conjunction : public WithBouncePrint<Conjunction, Expression> {
 public:
     std::vector<std::unique_ptr<Expression>> terms;
 };
 
-class Equation : public Expression {
+class Equation : public WithBouncePrint<Equation, Negatable> {
 public:
     std::vector<std::string> pos, neg;
     std::string res;
+
+private:
+    std::unique_ptr<Negatable> negate() override;
+};
+
+template<typename E>
+class NegExpression : public WithBouncePrint<NegExpression<E>, E> {
+public:
+    NegExpression(E &&e) : WithBouncePrint<NegExpression, E>(std::move(e)) { }
+
+private:
+    std::unique_ptr<Negatable> negate() override;
 };
 
 class Parser {
 public:
+    template<class T, class E>
+    friend std::ostream &WithBouncePrint<T, E>::bounce_print(std::ostream &, Parser &) const;
+
     Parser(std::istream &in, int k, bool distinct)
         : first_chars(), chars(), in(in), k(k), peek(in.get()), line(1), distinct(distinct) { skip(); }
 
@@ -104,10 +142,7 @@ private:
     }
 
     std::ostream &print(std::ostream &out, const std::unique_ptr<Expression> &term) {
-        if (auto equation = dynamic_cast<const Equation *>(term.get()); equation)
-            return print(out, *equation);
-        else
-            return print(out, *static_cast<const Disjunction *>(term.get()));
+        return term->bounce_print(out, *this);
     }
 
     std::ostream &print(std::ostream &out, const std::string &word) {
@@ -159,6 +194,12 @@ private:
         }
 
         return out << ")\n";
+    }
+
+    template<class E>
+    std::ostream &print(std::ostream &out, const NegExpression<E> &neg_expression) {
+        out << "(not\n";
+        return print(out, static_cast<const E&>(neg_expression)) << ")\n";
     }
 
     Disjunction expression() {
@@ -248,11 +289,15 @@ private:
         return conjunction_return;
     }
 
-    std::unique_ptr<Expression> term() {
+    std::unique_ptr<Negatable> term() {
         if (peek == '(') {
             next();
 
             return std::make_unique<Disjunction>(par_expression());
+        } else if (peek == '!') {
+            next();
+
+            return term()->negate();
         } else {
             return std::make_unique<Equation>(equation());
         }
@@ -367,15 +412,44 @@ private:
     bool distinct;
 };
 
+template<class T, class E>
+std::ostream &WithBouncePrint<T, E>::bounce_print(std::ostream &out, Parser &parser) const {
+    return parser.print(out, static_cast<const T &>(*this));
+}
+
+std::unique_ptr<Negatable> Disjunction::negate()
+{
+    return std::make_unique<NegExpression<Disjunction>>(std::move(*this));
+}
+
+std::unique_ptr<Negatable> Equation::negate()
+{
+    return std::make_unique<NegExpression<Equation>>(std::move(*this));
+}
+
+template<class E>
+std::unique_ptr<Negatable> NegExpression<E>::negate()
+{
+    return std::make_unique<E>(static_cast<E &&>(*this));
+}
+
 using namespace std::string_literals;
 
-int main(int argc, char * argv[]) {
+int main(int, char * argv[]) {
     int base = 10;
     bool distinct = true;
-
-    if (argc > 1) {
-        if (argv[1] == "-d"s)
+    for (char **arg = argv + 1; *arg != nullptr; ++arg) {
+        if (*arg == "-d"s) {
             distinct = false;
+        } else if (*arg == "-b"s) {
+            if (*++arg == nullptr || (std::istringstream(*arg) >> base, base) == 0) {
+                std::cerr << "bad arguments" << std::endl;
+                exit(2);
+            }
+        } else {
+            std::cerr << "bad arguments" << std::endl;
+            exit(2);
+        }
     }
 
 
