@@ -1,0 +1,87 @@
+\documentclass[a4paper,12pt]{article} % This defines the style of your paper
+
+\usepackage[top = 2.5cm, bottom = 2.5cm, left = 2.5cm, right = 2.5cm]{geometry}
+
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}
+
+\usepackage{multirow}
+\usepackage{booktabs}
+
+\usepackage{amsmath}
+\usepackage{graphicx}
+
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+
+\usepackage{listings}
+\lstset{language=C}
+
+\usepackage{enumitem}
+
+\newtheorem{definition}{Definition}
+\newtheorem{observation}{Observation}[definition]
+
+\usepackage{setspace}
+\setlength{\parindent}{0in}
+\setlength{\parskip}{.5em}
+
+\begin{document}
+
+\begin{center}
+    {\Large \bf Homework 10}
+    \vspace{2mm}
+
+    {\bf Jiří Klepl}
+
+\end{center}
+
+\vspace{0.4cm}
+
+\begin{enumerate}[label=\alph*)]
+    \item \label{a} The modified program:
+    \begin{lstlisting}
+char mybuf[256];
+
+void concatenate(
+    char buf1[], unsigned len1,
+    char buf2[], unsigned len2) {
+    // I think there was a bug (>) in the assignment
+    if (len1 + len2 >= 256) return; // len1 + len2 < 256
+
+    {   unsigned i = 0;
+        if (i != len1) {
+            assert(i < len1); // and we don't need (i >= 0)
+            i = *;
+            assume(i < len1);
+
+            asssert(i < 256); // subsumed by (i < len1)
+            asssert(i < len1); // assumed
+            mybuf[i] = buf1[i];
+            i++;
+            assert(i != len1 -> i < len1);
+    }   }
+
+    {   unsigned i = 0;
+        if (i != len2) {
+            assert(i < len2);
+            i = *;
+            assume(i < len2);
+
+            assert(i + len1 <= 256); // subsumed by:
+                // (i < len2 && len1 + len2 < 256)
+            assert(i < len2); // assumed
+            mybuf[len1 + i] = buf2[i];
+            i++;
+            assert(i != len2 -> i < len2);
+    }   }
+}
+    \end{lstlisting}
+    \item see \ref{a}
+    \item They do not hold. Under bit-vector arithmetics, it is possible that $len1 + len2 < 256 \land \exists i: 0 \leq i < len2 \to len1 + i \geq 256$.
+\end{enumerate}
+
+
+
+\end{document}
