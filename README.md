@@ -2,7 +2,7 @@
 
 This repository contains solutions to various [NAIL094](http://ktiml.mff.cuni.cz/~kucerap/satsmt/index-en.php) homework assignments.
 
-Please, do not copy :)
+Please, do not copy
 
 ---
 
