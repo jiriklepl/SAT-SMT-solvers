@@ -45,13 +45,13 @@ We can also assume that $\forall i, j \in [m] : k_i \neq k_j \vee l_i \neq l_j$ 
 
 Without loss of generality, we can add a requirement $\forall j \in [n] : \exists a \in [m] : j = k_a \lor j = l_a$ (``all variables are mentioned''). Otherwise, we pick a $j$ for which the existence predicate doesn't hold and we can formulate a new problem which has the same constants and slack variables, but where $k'_i = \text{if } k_i < i \text { then } k_i \text{ else } k_i - 1$ and $l'_i = \text{if } l_i < i \text { then } l_i \text{ else } l_i - 1$ for each $i \in [m]$. We consider these two problems equally hard.
 
-This requirement makes $n$ upper-bound to $2m$.
+This requirement makes $n$ upper-bounded by $2m$.
 
 Furthermore, we can add a requirement $\forall j \in [n] : \exists a, b \in [m] : j = k_a = l_b$ (``each variable is non-trivially constrained''). Otherwise, the constraints containing the variable $x_j$ are trivially solvable ($\in O(1)$ - setting variable $x_j$ doesn't break any constraint). The problems satisfying this extra requirement can be considered harder.
 
-This requirement makes $n$ upper-bound to $m$.
+This requirement makes $n$ upper-bounded by $m$.
 
-Let $G = (X, V)$ denote the dependence graph, where $X$ is the set of all problem variables and $V = \{(x_{k_i}, x_{k_j}) | i, j \in [m] : k_i = l_j\}$. If there is a path from an $x_a$ to an $x_b$, we say that (an increase of) $x_b$ pushes $x_b$ and (a decrease of) $x_a$ pulls $x_a$. If $x_a$ and $x_b$ are strongly connected, we say they are co-dependent (both of their differences are bound).
+Let $G = (X, V)$ denote the dependence graph, where $X$ is the set of all problem variables and $V = \{(x_{k_i}, x_{k_j}) | i, j \in [m] : k_i = l_j\}$. If there is a path from an $x_a$ to an $x_b$, we say that (an increase of) $x_b$ pushes $x_b$ and (a decrease of) $x_a$ pulls $x_a$. If $x_a$ and $x_b$ are strongly connected, we say they are co-dependent (both of their differences are bounded).
 
 If the graph is disconnected, the algorithm doesn't propagate violations between its components and thus all such problems are easier. If the connected graph has multiple strongly connected components, then there exists a pair of components where one pushes the other (and the other one pulls the first one) and thus the violations propagate only one-way. These problems are easier as well.
 
