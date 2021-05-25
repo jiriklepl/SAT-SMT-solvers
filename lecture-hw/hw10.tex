@@ -47,8 +47,7 @@ char mybuf[256];
 void concatenate(
     char buf1[], unsigned len1,
     char buf2[], unsigned len2) {
-    // I think there was a bug (>) in the assignment
-    if (len1 + len2 >= 256) return; // len1 + len2 < 256
+    if (len1 + len2 > 256) return; // len1 + len2 <= 256
 
     {   unsigned i = 0;
         if (i != len1) {
