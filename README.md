@@ -24,7 +24,6 @@ Remarkable for its brevity, not so much for its speed
 1. [Tseitin Encoding and DIMACS Format](Haskell/Formula2CNF): `cabal run formula2cnf`
 2. [DPLL Algorithm](Haskell/DPLL): `cabal run dpll`
 
-
 ---
 
 ## Programming assignments - Using a SAT solver

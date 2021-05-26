@@ -18,13 +18,13 @@ You can check whether two formulas are equivalent, or at least whether one impli
 
 ## Comparison
 
-The program `main` was run on the first 20 formulas from each of the datasets in the [links.txt](links.txt) for `FILE1` and another one (not necessarily different) from these formulas for `FILE2` for each of the three version and then they grouped into 9 groups depending on the number of variables of each file (20, 50, 100) for each of the three versions. (60 * 60 * 3 = 10800 measurements in total)
+The program `main` was run on the first 20 formulas from each of the datasets in the [links.txt](links.txt) for `FILE1` and another one (not necessarily different) from these formulas for `FILE2` for each of the three version and then they grouped into 9 groups depending on the number of variables of each file (20, 50, 100) for each of the three versions. (60 \* 60 \* 3 = 10800 measurements in total)
 
 Then the mean times of each group were divided by the reference version `short`. (All of this is in the files `test.bash` and `script.R`)
 
-### **short**(reference) vs **long**:
+### **short**(reference) vs **long**
 
-```
+```text
   variables1 variables2      time
 1         20         20 2.2279145
 2         20         50 5.5673904
@@ -43,9 +43,9 @@ In general, the `long` version performs worse than the `short` version.
 
 Even though the `long` version can perform better for some instances; if we were interested in the implications in both ways, the slowdown in the other direction outweighs this improvement. This is why the `equivalent.sh` script uses the `short` version.
 
-### **short**(reference) vs **long_eq**:
+### **short**(reference) vs **long_eq**
 
-```
+```text
   variables1 variables2      time
 1         20         20  3.582969
 2         20         50  8.870889
