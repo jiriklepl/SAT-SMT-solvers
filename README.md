@@ -2,7 +2,7 @@
 
 This repository contains solutions to various [NAIL094](http://ktiml.mff.cuni.cz/~kucerap/satsmt/index-en.php) homework assignments.
 
-Please, do not copy :)
+Please, do not copy
 
 ---
 
@@ -51,3 +51,4 @@ Root: [lecture-hw](lecture-hw)
 - [hw7.pdf](lecture-hw/hw7.pdf)
 - [hw8.pdf](lecture-hw/hw8.pdf)
 - [hw9.pdf](lecture-hw/hw9.pdf)
+- [hw10.pdf](lecture-hw/hw10.pdf)
