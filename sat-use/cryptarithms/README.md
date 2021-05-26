@@ -15,7 +15,7 @@ The translator accepts both lowercase characters and uppercase characters and it
 ## How to build the translator
 
 ```sh
-# builds the fomula2smtlib translator
+# builds the formula->smtlib translator
 c++ -std=c++20 -O2 -march=native -Wall -Wextra -pedantic main.cpp -o cryptarithms
 ```
 
@@ -189,7 +189,7 @@ This has the following solution
 
 This is the translated version of `C+LOGIC+SCALA=ERLANG` (one of the problems on the site linked by the assignment).
 
-```
+```text
 (benchmark test.smt
 :logic QF_UFLIA
 :extrafuns ((A Int)(C Int)(E Int)(G Int)(I Int)(L Int)(N Int)(O Int)(R Int)(S Int))
