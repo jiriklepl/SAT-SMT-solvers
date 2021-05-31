@@ -34,6 +34,7 @@ Root: [sat-use](sat-use)
 - [**Backbones**](sat-use/task_n_queens)
 - [**Testing Equivalence**](sat-use/task_n_queens)
 - [**Cryptarithms**](sat-use/cryptarithms)
+- [**Cryptarithms with SMT-LIB 2**](sat-use/cryptarithms-smt2)
 
 ---
 
