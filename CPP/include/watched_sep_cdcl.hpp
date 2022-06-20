@@ -230,6 +230,7 @@ private:
     }
 
     bool solve(var_t d) {
+
         while (true) {
             while (!unit_propag(d)) {
                 if (d == 1)
@@ -254,10 +255,21 @@ private:
             if (assign.unassigned.empty())
                 return true;
 
-            auto val = *assign.unassigned.begin();
+            auto val = assign.unassigned.begin();
 
+            {
+                std::uniform_int_distribution<> distrib(0, assign.unassigned.size() - 1);
+
+                for (auto i = distrib(rng); i--;)
+                    ++val;
+            }
+            
             ++decided;
-            update(val, ++d, rand() % 2 == 0, 0);
+
+            {
+                std::uniform_int_distribution<> distrib(0, 1);
+                update(*val, ++d, distrib(rng) == 0, 0);
+            }
         }
     }
 

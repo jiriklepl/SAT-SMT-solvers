@@ -4,6 +4,7 @@
 #include <cassert>
 #include <compare>
 #include <cstdint>
+#include <random>
 #include <utility>
 #include <variant>
 #include <vector>
@@ -110,7 +111,7 @@ private:
 
 class Solver {
 public:
-    Solver() : derived(0), decided(0) {}
+    Solver() : derived(0), decided(0), dev(), rng(dev()) {}
     virtual ~Solver() = 0;
 
     virtual bool solve() = 0;
@@ -119,6 +120,9 @@ public:
     Assignment assign;
     std::size_t derived;
     std::size_t decided;
+protected:
+    std::random_device dev;
+    std::mt19937 rng;
 };
 
 inline Solver::~Solver() {}

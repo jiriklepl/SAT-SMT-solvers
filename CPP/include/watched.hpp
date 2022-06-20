@@ -318,18 +318,36 @@ private:
         if (assign.unassigned.empty())
             return true;
 
-        auto val = *assign.unassigned.begin();
-        bool first = rand() % 2 == 0;
+        var_t value;
+
+        {
+            auto val = assign.unassigned.begin();
+            std::uniform_int_distribution<> distrib(0, assign.unassigned.size() - 1);
+
+            for (auto i = distrib(rng); i--;)
+                ++val;
+
+            value = *val;
+        }
+
+
+        bool first;
+
+        {
+            std::uniform_int_distribution<> distrib(0, 1);
+            
+            first = distrib(rng) == 0;
+        }
 
         ++decided;
-        update(val, d + 1, first, 0);
+        update(value, d + 1, first, 0);
 
         if (solve(d + 1))
             return true;
         else
             rollback(d);
 
-        update(val, d + 1, !first, 0);
+        update(value, d + 1, !first, 0);
 
         return solve(d + 1);
     }
